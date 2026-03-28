@@ -1,0 +1,516 @@
+var express = require('express');
+var bcrypt = require('bcrypt');
+const router = express.Router();
+var Sequelize = require('sequelize');
+const nodemailer = require("nodemailer");
+const { Op } = require('sequelize');
+require('dotenv').config();
+
+var knex = require("knex")({
+  client: 'mssql',
+  connection: {
+    user: process.env.USER,
+    password: process.env.PASSWORD,
+    server: process.env.SERVER,
+    database: process.env.DATABASE,
+    port: parseInt(process.env.APP_SERVER_PORT),
+    options: {
+      enableArithAbort: true,
+
+    }
+  },
+});
+
+var db = new Sequelize(process.env.DATABASE, process.env.USER, process.env.PASSWORD, {
+  host: process.env.SERVER,
+  dialect: "mssql",
+  port: parseInt(process.env.APP_SERVER_PORT),
+});
+
+const { DataTypes } = Sequelize;
+
+const Users1 = db.define('users_master', {
+  id_master: {
+    type: DataTypes.INTEGER,
+    primaryKey: true
+  },
+  user_name: {
+    type: DataTypes.STRING
+  },
+  emp_position: {
+    type: DataTypes.STRING
+  },
+  emp_firstname: {
+    type: DataTypes.STRING
+  },
+  emp_lastname: {
+    type: DataTypes.STRING
+  },
+  emp_email: {
+    type: DataTypes.STRING
+  },
+  emp_role: {
+    type: DataTypes.STRING
+  },
+  // emp_tier: {
+  //   type: DataTypes.STRING
+  // },
+  pass_word: {
+    type: DataTypes.STRING
+  },
+  created_by: {
+    type: DataTypes.STRING
+  },
+  created_at: {
+    type: DataTypes.STRING
+  },
+  is_active: {
+    type: DataTypes.STRING
+  },
+
+}, {
+  freezeTableName: false,
+  timestamps: false,
+  createdAt: false,
+  updatedAt: false,
+  tableName: 'users_master'
+})
+
+router.get('/test', async function (req, res) {
+  try {
+    const test = await knex('users_master').select('*');
+    res.json(test)
+    console.log(test)
+  } catch (err) {
+    console.log('INTERNAL ERROR: ', err)
+  }
+})
+
+router.get('/get-all-users', async (req, res, next) => {
+  try {
+    const getAllUsers = await knex('users_master').select('*');
+    res.json(getAllUsers)
+    console.log('Triggered /get-all-users')
+  } catch (err) {
+    console.log('Unable to fetch all users');
+
+  }
+})
+
+
+//Log in Function
+router.get('/login', async function (req, res, next) {
+  try {
+
+    console.log(`Login attempt for user: ${req.query.user_name}`);
+
+    const user = await Users1.findAll({
+      where: {
+        user_name: req.query.user_name
+      }
+    });
+
+    if (!user || user.length === 0) {
+      console.log('USER NOT FOUND')
+      return res.status(404).json({ msg: 'User not found! Try again...' })
+    }
+
+    if (req.query.pass_word !== user[0].pass_word) {
+      console.log('INCORRECT PASSWORD')
+      return res.status(401).json({ msg: 'Incorrect password. Try again...' })
+    }
+
+    await knex('users_master')
+      .where({ id_master: user[0].id_master })
+      .update({ is_active: 1 });
+
+    const result = {
+      id_master: user[0].id_master,
+      user_name: user[0].user_name,
+      emp_position: user[0].emp_position,
+      emp_email: user[0].emp_email,
+      emp_firstname: user[0].emp_firstname,
+      emp_lastname: user[0].emp_lastname,
+      is_active: user[0].is_active,
+      emp_role: user[0].emp_role,
+      emp_tier: user[0].emp_tier,
+    };
+
+    console.log(`User ${user[0].user_name} Logged In`);
+    res.json(result);
+  } catch (err) {
+    console.log("Error logging in: ", err)
+    return res.status(404).json({ msg: 'User not found! Try again...' })
+
+  }
+})
+
+//Register function
+router.post('/register', async function (req, res, next) {
+  const currentTimestamp = new Date();
+  const {
+    emp_firstname,
+    emp_lastname,
+    user_name,
+    pass_word,
+    emp_email,
+    emp_role,
+    emp_position,
+    current_user
+  } = req.body
+
+  console.log('/register was triggered', emp_firstname, emp_lastname, emp_email, emp_position)
+  try {
+
+    const [user] = await knex('users_master').insert({
+      emp_firstname: emp_firstname,
+      emp_lastname: emp_lastname,
+      user_name: user_name,
+      pass_word: pass_word,
+      emp_email: emp_email,
+      emp_role: emp_role,
+      emp_position: emp_position,
+      created_by: current_user,
+      created_at: currentTimestamp,
+      is_active: 1
+    }).returning('id_master');
+
+    const user_id = user.user_id || user;
+
+    await knex('users_logs').insert({
+      user_id: user_id,
+      changes_made: `${user_name} was added by ${current_user}`,
+      created_at: currentTimestamp,
+      created_by: current_user
+    })
+
+    console.log(`User was registered ${user_name} by ${current_user}`);
+    res.status(200).json({ message: "User registered successfully" });
+
+    // //email
+    // try {
+    //   if (emp_tier === 'user') {
+    //     console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    //     console.log(`Email function triggered for ${user_name} by ${current_user}, sending to ${emp_email}`);
+    //     const transporter = nodemailer.createTransport({
+    //       host: process.env.EMAIL_HOST,
+    //       secure: false,
+    //       auth: {
+    //         user: process.env.EMAIL,
+    //         pass: process.env.EMAIL_PASS
+    //       },
+    //       tls: {
+    //         rejectUnauthorized: false
+    //       }
+    //     });
+    //     //Setting assigned HD username
+    //     var end = `Best regards,<br> Lepanto Helpdesk System`;
+    //     var privacy = '<br><p style="color:gray;font-size:12px">Privacy Notice: </p>' +
+    //       '<p style="color:gray;font-size:12px">The content of this email is intended for the person ' +
+    //       'or entity to which it is addressed only. This email may contain confidential information. If you are not the person ' +
+    //       'to whom this message is addressed, be aware that any use, reproduction, or distribution of this message is strictly ' +
+    //       'prohibited.</p>'
+    //     const username = user_name.charAt(0).toUpperCase() + user_name.slice(1).toLowerCase();
+
+    //     var body = `This is to inform you that your account has been created in the IT Helpdesk System. <br><br>`
+    //       + `You can access the Helpdesk System using the following link: <a href="192.168.4.246:3007/ticketsystem" style=color: #1a73e8; text-decoration: none;>Click Here</a> <br><br>`
+    //       + `Below are your account details: <br>`
+    //       + `Username: <b>${user_name}</b> <br>`
+    //       + `Temporary Password: <b>${pass_word}</b> <br><br>`
+    //       + `You are advised to change your password upon your first login. Click your name at the top right corner, select <b>Profile</b>, and then click the <b>Change Password</b> button.<br><br>`
+    //       + `If you have any questions or need further assistance, please do not hesitate to contact the IT Department.<br><br>`
+
+    //     var start = `Hello <b>${username}</b>, <br><br>`
+    //     var wholeEmail = start + body + end + privacy;
+
+    //     const mailOptions = {
+    //       from: process.env.EMAIL,
+    //       to: emp_email,
+    //       subject: 'Helpdesk System Account Created',
+    //       html: wholeEmail
+    //     };
+
+    //     await transporter.sendMail(mailOptions);
+    //     console.log(`Email sent to ${emp_email} regarding user creation by ${current_user}`);
+    //   }
+
+    // } catch (err) {
+    //   console.log('Unable to send email at the moment: ', err)
+    // }
+  } catch (err) {
+    return res.status(404).json({ msg: 'Unable to Register user!' + ` ${user_name}` })
+
+  }
+});
+
+//Email registration
+router.post('/register-email', async function (req, res, next) {
+  try {
+    console.log('Triggered /register-email')
+    const {
+      user_name,
+      pass_word,
+      emp_email,
+      current_user
+    } = req.body
+
+    console.log(`Email function triggered for ${user_name} by ${current_user}, sending to ${emp_email}`);
+    const transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL,
+        pass: process.env.EMAIL_PASS
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+    //Setting assigned HD username
+    var end = `Best regards,<br> Lepanto Helpdesk System`;
+    var privacy = '<br><p style="color:gray;font-size:12px">Privacy Notice: </p>' +
+      '<p style="color:gray;font-size:12px">The content of this email is intended for the person ' +
+      'or entity to which it is addressed only. This email may contain confidential information. If you are not the person ' +
+      'to whom this message is addressed, be aware that any use, reproduction, or distribution of this message is strictly ' +
+      'prohibited.</p>'
+    const username = user_name.charAt(0).toUpperCase() + user_name.slice(1).toLowerCase();
+
+    var body = `This is to inform you that your account has been created in the IT Helpdesk System. <br><br>`
+      + `You can access the Helpdesk System using the following link: <a href="192.168.4.246:3007/ticketsystem" style=color: #1a73e8; text-decoration: none;>Click Here</a> <br><br>`
+      + `Below are your account details: <br>`
+      + `Username: <b>${user_name}</b> <br>`
+      + `Temporary Password: <b>${pass_word}</b> <br><br>`
+      + `You are advised to change your password upon your first login. Click your name at the top right corner, select <b>Profile</b>, and then click the <b>Change Password</b> button.<br><br>`
+      + `If you have any questions or need further assistance, please do not hesitate to contact the IT Department.<br><br>`
+
+    var start = `Hello <b>${username}</b>, <br><br>`
+    var wholeEmail = start + body + end + privacy;
+
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: emp_email,
+      subject: 'Helpdesk System Account Created',
+      html: wholeEmail
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Email sent to ${emp_email} regarding user creation by ${current_user}`);
+  } catch (err) {
+    console.log('INTERNAL EROR: ', err)
+  }
+})
+
+//Update a user
+router.post('/update-user', async (req, res, next) => {
+  const currentTimestamp = new Date();
+  const {
+    user_id,
+    emp_FirstName,
+    emp_LastName,
+    user_name,
+    emp_email,
+    emp_tier,
+    emp_phone,
+    emp_role,
+    emp_location,
+    emp_department,
+    emp_position,
+    updated_by
+  } = req.body;
+
+  try {
+    await knex('users_master').where({ user_id: user_id }).update({
+      emp_FirstName: emp_FirstName,
+      emp_LastName: emp_LastName,
+      user_name: user_name,
+      emp_email: emp_email,
+      emp_tier: emp_tier,
+      emp_phone: emp_phone,
+      emp_role: emp_role,
+      emp_location: emp_location,
+      emp_department: emp_department,
+      emp_position: emp_position,
+      updated_at: currentTimestamp,
+      updated_by: updated_by
+    })
+
+    await knex('users_logs').insert({
+      user_id: user_id,
+      changes_made: `User details were updated for ${user_name} by ${updated_by}`,
+      created_at: currentTimestamp,
+      created_by: updated_by
+    })
+
+    console.log(`User was updated ${user_name} with ID ${user_id} `);
+    res.status(200).json({ message: "User updated successfully" });
+  } catch (err) {
+    console.log("INTERNAL ERROR: ", err)
+  }
+
+})
+
+//Edit Password
+router.post('/edit-password', async (req, res) => {
+  try {
+    const { user_id, new_password } = req.body;
+    const currentTimestamp = new Date();
+    const user_info = knex('users_master').where({ user_id: user_id }).first()
+
+    await knex('users_master').where({ user_id: user_id }).update({
+      pass_word: new_password,
+      updated_at: currentTimestamp
+    })
+
+    await knex('users_logs').insert({
+      user_id: user_id,
+      changes_made: `User ${user_info.user_name}, updated own password`,
+      created_at: currentTimestamp,
+      created_by: user_info.user_name
+    })
+
+    res.status(200).json({ message: "User password updated successfully" });
+  } catch (err) {
+    console.log('INTERNAL ERROR: ', err)
+  }
+})
+//Get all users
+router.get('/get-all-users', async (req, res, next) => {
+  try {
+    const getAllUsers = await knex('users_master').select('*');
+    res.json(getAllUsers)
+    console.log('Triggered /get-all-users')
+  } catch (err) {
+    console.log('Unable to fetch all users');
+
+  }
+})
+
+//Get User by their username
+router.get('/get-by-username', async (req, res, next) => {
+  try {
+    const getCreatedBy = await Users1.findAll({
+      where: {
+        user_name: req.query.user_name
+      }
+    })
+    res.json(getCreatedBy[0])
+    console.log('Triggered /get-by-username')
+  } catch (err) {
+    console.log('GET BY USERNAME CONOSOLE: ', err)
+  }
+})
+
+//Get User by their user_id
+router.get('/get-by-id', async (req, res, next) => {
+  try {
+    const getCreatedBy = await Users1.findAll({
+      where: {
+        user_id: req.query.user_id
+      }
+    })
+    res.json(getCreatedBy[0])
+    console.log('Triggered /get-by-id')
+  } catch (err) {
+    console.log('GET BY USERNAME CONOSOLE: ', err)
+  }
+})
+// Delete User function
+router.post('/delete-user', async (req, res, next) => {
+  try {
+    const {
+      user_id,
+      deleted_by
+    } = req.body;
+
+    const currentTimestamp = new Date();
+    const userInfo = await knex('users_master').where({ user_id: user_id }).first();
+
+    await knex('users_logs').insert({
+      user_id: user_id,
+      changes_made: `${userInfo.user_name} was deleted by ${deleted_by}`,
+      created_at: currentTimestamp,
+      created_by: deleted_by
+    })
+
+    await knex('users_master').where({ user_id: user_id }).del();
+    res.status(200).json({ message: "User updated successfully" });
+    console.log(`User with ID ${user_id} was deleted`);
+  } catch (err) {
+    console.log('DELETE USER CONOSOLE: ', err)
+  }
+})
+
+//Get all notes using their usernames
+router.get('/get-all-notes-usernames', async (req, res) => {
+  try {
+    const usernames = JSON.parse(req.query.user_name); // Convert string back to array
+    const users = await Users1.findAll({
+      where: {
+        user_name: { [Op.in]: usernames }
+      }
+    });
+    res.json(users);
+    console.log('Triggered /get-all-notes-usernames')
+  } catch (err) {
+    console.error('Error fetching multiple users:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+//Get all Reviews by their usernanmes
+router.get('/get-all-review-usernames', async (req, res) => {
+  try {
+    const usernames = JSON.parse(req.query.user_name); // Convert string back to array
+    const users = await Users1.findAll({
+      where: {
+        user_name: { [Op.in]: usernames }
+      }
+    });
+    res.json(users);
+    console.log('Triggered /get-all-review-usernames')
+  } catch (err) {
+    console.error('Error fetching multiple users:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+//get all users using their user_id
+router.get('/get-all-by-id', async (req, res) => {
+  try {
+    const user_id = JSON.parse(req.query.user_id); // Convert string back to array
+    const users = await Users1.findAll({
+      where: {
+        user_id: { [Op.in]: user_id }
+      }
+    });
+    console.log('Triggered /get-all-by-id')
+    res.json(users);
+  } catch (err) {
+    console.error('Error fetching multiple users:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+//Get all the notes
+router.get('/get-all-notes', async (req, res) => {
+  try {
+    const getAll = await knex('notes_master').select('*');
+    console.log('Triggered /get-all-notes')
+    res.json(getAll)
+  } catch (err) {
+    console.log('INTERNAL ERROR: ', err)
+  }
+})
+
+//get all pms notes
+router.get('/get-all-pmsnotes', async (req, res) => {
+  try {
+    const getAll = await knex('pmsnotes_master').select('*');
+    console.log('Triggered /get-all-notes')
+    res.json(getAll)
+  } catch (err) {
+    console.log('INTERNAL ERROR: ', err)
+  }
+})
+
+module.exports = router;
