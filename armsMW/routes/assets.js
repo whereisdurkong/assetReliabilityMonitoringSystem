@@ -46,6 +46,9 @@ const Assets = db.define('assets_master', {
     date_commisioning: {
         type: DataTypes.STRING
     },
+    trivector: {
+        type: DataTypes.STRING
+    },
     asset_notes: {
         type: DataTypes.STRING
     },
@@ -168,6 +171,7 @@ router.post('/add-assets', async (req, res) => {
         asset_category,
         date_commisioning,
         asset_notes,
+        trivector,
         created_by,
         components,
         has_components // Add this field
@@ -184,6 +188,7 @@ router.post('/add-assets', async (req, res) => {
                 asset_category,
                 date_commisioning,
                 asset_notes,
+                trivector,
                 created_by,
                 is_active: '1',
                 has_components: has_components || (components && components.length > 0 ? '1' : '0'), // Store 1 if components exist, else 0
@@ -341,6 +346,7 @@ router.post('/update-assets', async (req, res) => {
         asset_location,
         asset_category,
         date_commisioning,
+        trivector,
         asset_notes,
         is_active,
         updated_by,
@@ -353,6 +359,7 @@ router.post('/update-assets', async (req, res) => {
         asset_location,
         asset_category,
         date_commisioning,
+        trivector,
         asset_notes,
         is_active,
         updated_by,
@@ -369,5 +376,66 @@ router.post('/update-assets', async (req, res) => {
     res.status(200).json({ message: 'Asset updated successfully' });
 
 })
+
+
+router.post('/update-component', async (req, res) => {
+    const currentTimestamp = new Date();
+    const {
+        component_id,
+        component_name,
+        component_type,
+        updated_by,
+        asset_id
+    } = req.body;
+
+
+    await knex('assets_component_master').where('asset_component_id', component_id).update({
+        asset_component_name: component_name,
+        asset_component_type: component_type,
+        updated_by,
+        updated_at: currentTimestamp
+    })
+
+    await knex('assets_logs').insert({
+        asset_id,
+        changes_made: `${updated_by} has updated a component. Component ID: ${component_id}`,
+        created_by: updated_by,
+        created_at: currentTimestamp
+
+    })
+    res.status(200).json({ message: 'Component updated successfully' });
+
+});
+router.post('/add-component', async (req, res) => {
+    const currentTimestamp = new Date();
+    const {
+        component_name,
+        component_type,
+        created_by,
+        asset_id
+    } = req.body;
+
+
+    await knex('assets_component_master').insert({
+        asset_component_name: component_name,
+        asset_component_type: component_type,
+        created_by: created_by,
+        asset_id: asset_id,
+        created_at: currentTimestamp
+    })
+
+    await knex('assets_logs').insert({
+        asset_id,
+        changes_made: `${created_by} has added a new component. `,
+        created_by: created_by,
+        created_at: currentTimestamp
+
+    })
+    res.status(200).json({ message: 'Component added successfully' });
+
+})
+
+
+
 
 module.exports = router;

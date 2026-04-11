@@ -261,6 +261,46 @@ const AssetsAnalysis = db.define('asset_analysis_master', {
     tableName: 'asset_analysis_master'
 });
 
+const SetupOption = db.define('option_master', {
+    option_id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true
+    },
+    option_asset_location: {
+        type: DataTypes.STRING
+    },
+    option_asset_type: {
+        type: DataTypes.STRING
+    },
+    option_asset_location: {
+        type: DataTypes.STRING
+    },
+    option_asset_category: {
+        type: DataTypes.STRING
+    },
+    option_component_types: {
+        type: DataTypes.STRING
+    },
+    created_by: {
+        type: DataTypes.STRING
+    },
+    created_at: {
+        type: DataTypes.STRING
+    },
+    updated_by: {
+        type: DataTypes.STRING
+    },
+    updated_at: {
+        type: DataTypes.STRING
+    }
+}, {
+    freezeTableName: false,
+    timestamps: false,
+    createdAt: false,
+    updatedAt: false,
+    tableName: 'option_master'
+});
+
 
 // Update your POST endpoint
 router.post('/add-assets-analysis', async (req, res) => {
@@ -450,6 +490,189 @@ router.get('/get-submitted-assets-by-id', async (req, res, next) => {
     }
 })
 
+router.post('/add-option', async (req, res) => {
+    try {
+        const {
+            option_asset_location,
+            option_asset_type,
+            option_asset_category,
+            option_component_types,
+            created_by
+        } = req.body;
+
+        console.log(
+            option_asset_location,
+            option_asset_type,
+            option_asset_category,
+            option_component_types,
+            created_by
+        )
+        await knex('option_master').insert({
+            option_asset_location: option_asset_location.join(','),
+            option_asset_type: option_asset_type.join(','),
+            option_asset_category: option_asset_category.join(','),
+            option_component_types: option_component_types.join('/'),
+            created_by: created_by,
+            created_at: new Date(),
+
+        })
+
+        res.json(200)
+
+        console.log(option_asset_location)
+
+    } catch (err) {
+        console.log(err)
+    }
+});
+
+router.post('/update-option', async (req, res) => {
+    try {
+        const {
+            option_id,
+            option_asset_location,
+            option_asset_type,
+            option_asset_category,
+            option_component_types,
+            updated_by
+        } = req.body;
+
+        await knex('option_master').where({ option_id: option_id }).update({
+            option_asset_location: option_asset_location,
+            option_asset_type: option_asset_type,
+            option_asset_category: option_asset_category,
+            option_component_types: option_component_types,
+            updated_by: updated_by,
+            updated_at: new Date(),
+
+        })
+        res.json(200)
+
+    } catch (err) {
+        console.log('UNABLE TO UPDATE OPTION: ', err)
+    }
+})
+
+router.post('/delete-option', async (req, res) => {
+    try {
+        const {
+            option_id
+        } = req.body;
+        await knex('option_master').where({ option_id: option_id }).del();
+        res.json(200)
+    } catch (err) {
+        console.log('UNABLE TO DELETE OPTION: ', err)
+    }
+})
+
+router.get('/get-all-options', async (req, res) => {
+    try {
+        const fetch = await knex('option_master').select('*');
+        res.json(fetch);
+        console.log('triggered-get-all-options')
+    } catch (err) {
+        console.log('UNABLE TO GET ALL OPTIONS: ', err);
+    }
+})
+
+
+router.get('/get-option-by-id', async (req, res) => {
+    try {
+        const getbyID = await SetupOption.findAll({
+            where: {
+                option_id: req.query.id
+            }
+        })
+        console.log('triggered /get-asset-by-id');
+        res.json(getbyID[0])
+    } catch (err) {
+        console.log('UNABLE TO GET OPTION BY ID: ', err);
+    }
+})
+
+// For individual wear metal items - returns the inserted ID
+router.post('/add-wear-metal', async (req, res) => {
+
+    const { parameter, unit, trivector_id } = req.body;
+    console.log(req.body)
+    try {
+
+        // Insert and return the ID
+        const [id_wearMetal] = await knex('option_trivector_wear_metals').insert({
+            parameter,
+            unit,
+            trivector_id
+        }).returning('option_trivector_wear_metal_id'); // Use returning('id') for PostgreSQL or for MSSQL use:
+
+        const id = id_wearMetal.option_trivector_wear_metals || id_wearMetal
+        res.status(200).json({
+            success: true,
+            id: id,
+            message: 'Wear metal saved successfully'
+        });
+    } catch (err) {
+        console.error(err);
+    }
+});
+
+router.post('/add-contaminant', async (req, res) => {
+
+    const { parameter, unit, trivector_id } = req.body;
+    console.log(req.body)
+    try {
+
+        // Insert and return the ID
+        const [id_wearMetal] = await knex('option_trivector_contaminants').insert({
+            parameter,
+            unit,
+            trivector_id
+        }).returning('option_trivector_contaminants_id'); // Use returning('id') for PostgreSQL or for MSSQL use:
+
+        const id = id_wearMetal.option_trivector_contaminants_id || id_wearMetal
+        res.status(200).json({
+            success: true,
+            id: id,
+            message: 'contaminants saved successfully'
+        });
+    } catch (err) {
+        console.error(err);
+    }
+});
+
+router.post('/add-chemviscosity', async (req, res) => {
+
+    const { parameter, unit, trivector_id } = req.body;
+    console.log(req.body)
+    try {
+
+        // Insert and return the ID
+        const [id_wearMetal] = await knex('option_trivector_chem_viscosity').insert({
+            parameter,
+            unit,
+            trivector_id
+        }).returning('option_trivector_chem_viscosity_id'); // Use returning('id') for PostgreSQL or for MSSQL use:
+
+        const id = id_wearMetal.option_trivector_chem_viscosity_id || id_wearMetal
+        res.status(200).json({
+            success: true,
+            id: id,
+            message: 'chem visco saved successfully'
+        });
+    } catch (err) {
+        console.error(err);
+    }
+});
+
+router.get('/get-all-options-master', async (req, res) => {
+    try {
+        const fetch = await knex('option_master').select('*');
+        res.json(fetch);
+        console.log('triggered-get-all-options-master')
+    } catch (err) {
+        console.log('UNABLE TO GET ALL OPTION MASTER: ', err)
+    }
+});
+
 router.post('/update-assets', async (req, res) => {
     const currentTimestamp = new Date()
     const {
@@ -486,6 +709,117 @@ router.post('/update-assets', async (req, res) => {
     })
     res.status(200).json({ message: 'Asset updated successfully' });
 
+});
+
+router.post('/add-trivector', async (req, res) => {
+    try {
+        const {
+            trivectorName,
+            option_trivector_wear_metal,
+            option_trivector_contaminants,
+            option_trivector_chemical_viscosity,
+            created_by,
+        } = req.body;
+
+        const [trivectorId] = await knex('option_trivector_master').insert({
+            trivector_name: trivectorName,
+            trivector_wear_metal: option_trivector_wear_metal.join(','),
+            trivector_contaminants: option_trivector_contaminants.join(','),
+            trivector_chemical_viscosity: option_trivector_chemical_viscosity.join(','),
+            created_by
+        }).returning('trivector_id');
+
+        const trivector_id = trivectorId.trivector_id || trivectorId
+
+        // Send proper response back to client
+        res.status(200).json({
+            success: true,
+            message: 'Successfully added trivector',
+            data: {
+                trivectorName,
+                trivectorId: trivector_id,
+                wearMetalCount: option_trivector_wear_metal?.length || 0,
+                contaminantsCount: option_trivector_contaminants?.length || 0,
+                chemViscosityCount: option_trivector_chemical_viscosity?.length || 0
+            }
+        });
+        console.log('Successfully added trivector');
+    } catch (err) {
+        console.log('UNABLE TO ADD TRIVECTOR: ', err)
+        res.status(500).json({
+            error: 'Failed to add trivector',
+            details: err.message
+        });
+    }
+})
+
+router.post('/update-trivector', async (req, res) => {
+    try {
+        const {
+            trivector_id,
+            option_trivector_wear_metal,
+            option_trivector_contaminants,
+            option_trivector_chemical_viscosity
+        } = req.body;
+
+        // Check if trivector exists
+        const trivectorExists = await knex('option_trivector_master')
+            .where({ trivector_id: trivector_id })
+            .first();
+
+        if (!trivectorExists) {
+            return res.status(404).json({
+                success: false,
+                error: 'Trivector not found'
+            });
+        }
+
+        // Update the trivector with the collected IDs
+        const updated = await knex('option_trivector_master')
+            .where({ trivector_id: trivector_id })
+            .update({
+                trivector_wear_metal: option_trivector_wear_metal.join(','),
+                trivector_contaminants: option_trivector_contaminants.join(','),
+                trivector_chemical_viscosity: option_trivector_chemical_viscosity.join(','),
+                updated_at: knex.fn.now() // If you have an updated_at timestamp column
+            });
+
+        if (updated) {
+            res.status(200).json({
+                success: true,
+                message: 'Successfully updated trivector',
+                data: {
+                    trivector_id: trivector_id,
+                    wearMetalCount: option_trivector_wear_metal?.length || 0,
+                    contaminantsCount: option_trivector_contaminants?.length || 0,
+                    chemViscosityCount: option_trivector_chemical_viscosity?.length || 0
+                }
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                error: 'Failed to update trivector'
+            });
+        }
+    } catch (err) {
+        console.log('UNABLE TO UPDATE TRIVECTOR: ', err);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update trivector',
+            details: err.message
+        });
+    }
+});
+
+
+router.get('/get-all-trivector', async (req, res) => {
+    try {
+        const fetch = await knex('option_trivector_master').select('*');
+        res.json(fetch);
+        console.log('triggered-get-all-trivector')
+    } catch (err) {
+        console.log('UNABLE TO GET TRIVECTOR BY ID: ', err);
+    }
 })
 
 module.exports = router;

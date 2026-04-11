@@ -19,7 +19,10 @@ export default function AllSubmitAssets() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(8); // Show 8 items per page
 
+    const [postion, setPosition] = useState('');
+
     const navigate = useNavigate();
+    const empInfo = JSON.parse(localStorage.getItem("user"));
 
     // Helper function to get asset name by asset_id
     const getAssetName = (assetId) => {
@@ -60,6 +63,18 @@ export default function AllSubmitAssets() {
         return asset || null;
     };
 
+    useEffect(() => {
+        console.log(empInfo)
+        if (empInfo.emp_position === 'l1') {
+            setPosition('Level 1');
+        } else if (empInfo.emp_position === 'l2') {
+            setPosition('Level 2')
+        } else if (empInfo.emp_position === 'l3') {
+            setPosition('Level 3')
+        }
+    }, [empInfo])
+
+
     // Fetch submitted assets
     useEffect(() => {
         const fetchSubmittedAssets = async () => {
@@ -68,8 +83,21 @@ export default function AllSubmitAssets() {
                 const res = await axios.get(`${config.baseApi}/assetsAnalysis/get-all-submitted-assets`);
                 const oilreportdata = res.data || [];
 
-                console.log('ALL SUBMITTED OIL ANALYSIS REPORT: ', oilreportdata);
-                setSubmittedReport(oilreportdata);
+                if (empInfo.emp_position === 'l1') {
+                    const levelOne = oilreportdata.filter(e => e.level1 == 1 || e.level1 == true || e.level1 == "1")
+                    setSubmittedReport(levelOne);
+                    setFilteredAssets(levelOne); // Initially show all submitted assets
+                }
+                else if (empInfo.emp_postion === 'l2') {
+                    const levelTwo = oilreportdata.filter(e => e.level2 == 1 || e.level2 == true || e.level2 == "1")
+                    setSubmittedReport(levelTwo);
+                    setFilteredAssets(levelTwo); // Initially show all submitted assets
+                }
+                else if (empInfo.emp_postion === 'l3') {
+                    const levelThree = oilreportdata.filter(e => e.level3 == 1 || e.level3 == true || e.level3 == "1")
+                    setSubmittedReport(levelThree);
+                    setFilteredAssets(levelThree); // Initially show all submitted assets
+                }
 
                 const resgetallasset = await axios.get(`${config.baseApi}/assets/get-all-assets`);
                 const allassetsdata = resgetallasset.data || [];
@@ -83,7 +111,7 @@ export default function AllSubmitAssets() {
                 console.log('ALL ASSETS COMPONENT', getallassetscomponentdata);
                 setAllComponents(getallassetscomponentdata);
 
-                setFilteredAssets(oilreportdata); // Initially show all submitted assets
+
             } catch (err) {
                 console.log('Unable to fetch queue all-submitted-assets', err);
             } finally {
@@ -271,7 +299,7 @@ export default function AllSubmitAssets() {
                         marginBottom: '10px',
                         letterSpacing: '-0.5px',
                         textShadow: '0 4px 20px rgba(234, 181, 111, 0.2)'
-                    }}>All Asset Analysis Report</h1>
+                    }}>All Asset Analysis Report {postion} </h1>
                     <p style={{
                         fontSize: '1.2rem',
                         color: '#F9982F',

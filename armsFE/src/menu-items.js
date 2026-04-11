@@ -49,7 +49,7 @@ const menuItems = {
       children: [
         {
           id: 'add-asset',
-          title: 'Add Asset',
+          title: 'Add New Asset',
           type: 'item',
           icon: 'material-icons-two-tone',
           iconname: 'home',
@@ -65,6 +65,15 @@ const menuItems = {
           url: '/all-asset'
 
         },
+
+      ]
+    },
+    {
+      id: 'analysis-reports',
+      title: 'Analysis Reports',
+      type: 'group',
+      icon: 'icon-navigation',
+      children: [
         {
           id: 'Create Analysis Report',
           title: 'Create Analysis Report',
@@ -83,6 +92,40 @@ const menuItems = {
           url: '/all-submit-asset'
         },
 
+      ]
+    },
+
+    {
+      id: 'admin-tools',
+      title: 'Admin Tools',
+      type: 'group',
+      icon: 'icon-navigation',
+      children: [
+        {
+          id: 'add-setup',
+          title: 'Add Setup',
+          type: 'item',
+          icon: 'material-icons-two-tone',
+          iconname: 'home',
+          url: '/add-setup'
+        },
+        {
+          id: 'all-setup',
+          title: 'All Asset Option Setup',
+          type: 'item',
+          icon: 'material-icons-two-tone',
+          iconname: 'home',
+          url: '/all-option-setup'
+        },
+        {
+          id: 'add-trivector-setup',
+          title: 'Add Trivector Setup',
+          type: 'item',
+          icon: 'material-icons-two-tone',
+          iconname: 'home',
+          url: '/add-trivector-setup'
+
+        }
       ]
     },
     {

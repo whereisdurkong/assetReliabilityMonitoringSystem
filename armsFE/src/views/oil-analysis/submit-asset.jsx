@@ -118,9 +118,9 @@ export default function SubmitAsset() {
     const [mobileEngine, setMobileEngine] = useState(false);
     const [stationaryEngine, setStationaryEngine] = useState(false);
 
-    const [wearmetal, setWearMetal] = useState(true);
-    const [contaminants, setContaminants] = useState(true);
-    const [chem, setChem] = useState(true);
+    const [wearmetal, setWearMetal] = useState(false);
+    const [contaminants, setContaminants] = useState(false);
+    const [chem, setChem] = useState(false);
 
     // Color palette for consistent styling
     const styles = {
@@ -212,12 +212,12 @@ export default function SubmitAsset() {
      * Update category state based on selected asset category
      */
     useEffect(() => {
-        if (selectedAssetDetails && selectedAssetDetails.asset_category) {
-            const category = selectedAssetDetails.asset_category;
+        if (selectedAssetDetails && selectedAssetDetails.trivector) {
+            const category = selectedAssetDetails.trivector;
 
-            setStationaryEngine(category === 'stationary-engines' || category === 'stationary engine');
-            setRotatingMachine(category === 'rotating-machines' || category === 'rotating machine');
-            setMobileEngine(category === 'mobile-engines' || category === 'mobile engine');
+            setStationaryEngine(category === 'stationary-engine' || category === 'stationary engine');
+            setRotatingMachine(category === 'rotating-machine' || category === 'rotating machine');
+            setMobileEngine(category === 'mobile-engine' || category === 'mobile engine');
 
             console.log('Asset category detected:', category);
             console.log('Rotating Machine:', category === 'rotating' || category === 'rotating machine');

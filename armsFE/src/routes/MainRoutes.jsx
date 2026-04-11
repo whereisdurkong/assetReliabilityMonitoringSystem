@@ -2,7 +2,9 @@ import { lazy } from 'react';
 
 import Mainlayout from 'layouts/AdminLayout';
 import Maintenance from '../views/maintenance';
-import ViewSubmittedAsset from '../views/assets/view-submitted-asset';
+import ViewSubmittedAsset from '../views/oil-analysis/view-submitted-asset';
+import SetupAllOptions from '../views/setup/setup_all_options';
+import SetupOptionView from '../views/setup/setup_option_view';
 
 //SAMPLE PAGES
 const DashboardSales = lazy(() => import('../views/dashboard/DashSales/index'));
@@ -24,6 +26,9 @@ const ViewAsset = lazy(() => import('../views/assets/view-asset'));
 
 const AllSubmitAssets = lazy(() => import('../views/oil-analysis/all-submit-assets'));
 const SubmitAsset = lazy(() => import('../views/oil-analysis/submit-asset'));
+
+const AssetSetup = lazy(() => import('../views/setup/setup_options'))
+const TrivectorSetup = lazy(() => import('../views/setup/setup_option_trivector'))
 
 const Access = () => {
 
@@ -101,7 +106,27 @@ const MainRoutes = {
     {
       path: '/maintenance',
       element: <Maintenance />
-    }
+    },
+
+
+    {
+      path: '/add-setup',
+      element: <AssetSetup />
+    },
+    {
+      path: '/view-setup-options',
+      element: <SetupOptionView />
+    },
+    {
+      path: '/all-option-setup',
+      element: <SetupAllOptions />
+    },
+
+    {
+      path: '/add-trivector-setup',
+      element: <TrivectorSetup />
+    },
+
 
   ]
 }

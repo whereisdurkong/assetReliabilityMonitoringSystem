@@ -16,9 +16,10 @@ export default function AddAsset() {
         assetType: '',
         location: '',
         category: '',
+        trivector: '', // Added trivector field
         commissioningDate: '',
         notes: '',
-        hasComponents: '0' // '0' for NO, '1' for YES
+        hasComponents: '0'
     });
 
     // Components array to store multiple components
@@ -37,9 +38,111 @@ export default function AddAsset() {
     });
 
     const [isLoading, setIsLoading] = useState(false);
+    const [locationOptions, setLocationOptions] = useState([]);
 
-    // Remove the duplicate useEffect - you have two identical ones. Keep only one:
+    // Store the full API data for filtering
+    const [masterData, setMasterData] = useState([]);
 
+    // State for filtered options
+    const [assetTypeOptions, setAssetTypeOptions] = useState([]);
+    const [categoryOptions, setCategoryOptions] = useState([]);
+    const [componentTypeOptions, setComponentTypeOptions] = useState([]);
+
+    // Trivector options
+    const trivectorOptions = [
+        { label: 'Rotating Machine', value: 'rotating-machine' },
+        { label: 'Stationary Engine', value: 'stationary-engine' },
+        { label: 'Mobile Engine', value: 'mobile-engine' }
+    ];
+    // Fetch location options from API
+    useEffect(() => {
+        const fetchLocationOptions = async () => {
+            try {
+                const res = await axios.get(`${config.baseApi}/assetsAnalysis/get-all-options-master`);
+                const data = res.data || [];
+                setMasterData(data); // Store all data
+
+                // Collect all unique location options
+                const allLocations = [];
+                data.forEach(item => {
+                    if (item.option_asset_location) {
+                        const values = item.option_asset_location.split(',');
+                        values.forEach(value => {
+                            const trimmedValue = value.trim();
+                            if (trimmedValue && !allLocations.includes(trimmedValue)) {
+                                allLocations.push(trimmedValue);
+                            }
+                        });
+                    }
+                });
+
+                setLocationOptions(allLocations);
+                console.log('Location options:', allLocations);
+            } catch (error) {
+                console.error('Error fetching location options:', error);
+            }
+        };
+
+        fetchLocationOptions();
+    }, []);
+
+    // Filter options based on selected location
+    useEffect(() => {
+        if (!formData.location || masterData.length === 0) {
+            setAssetTypeOptions([]);
+            setCategoryOptions([]);
+            setComponentTypeOptions([]);
+            return;
+        }
+
+        // Find the data entry that contains the selected location
+        const selectedLocationData = masterData.find(item => {
+            if (item.option_asset_location) {
+                const locations = item.option_asset_location.split(',').map(loc => loc.trim());
+                return locations.includes(formData.location);
+            }
+            return false;
+        });
+
+        if (selectedLocationData) {
+            // Process asset types
+            if (selectedLocationData.option_asset_type) {
+                const types = selectedLocationData.option_asset_type.split(',').map(type => type.trim());
+                setAssetTypeOptions(types);
+            } else {
+                setAssetTypeOptions([]);
+            }
+
+            // Process categories
+            if (selectedLocationData.option_asset_category) {
+                const categories = selectedLocationData.option_asset_category.split(',').map(cat => cat.trim());
+                setCategoryOptions(categories);
+            } else {
+                setCategoryOptions([]);
+            }
+
+            // Process component types
+            if (selectedLocationData.option_component_types) {
+                const compTypes = selectedLocationData.option_component_types.split('/').map(type => type.trim());
+                setComponentTypeOptions(compTypes);
+
+                console.log(compTypes)
+            } else {
+                setComponentTypeOptions([]);
+            }
+
+            console.log('Asset Types for selected location:', assetTypeOptions);
+            console.log('Categories for selected location:', categoryOptions);
+            console.log('Component Types for selected location:', componentTypeOptions);
+        } else {
+            // No matching data found
+            setAssetTypeOptions([]);
+            setCategoryOptions([]);
+            setComponentTypeOptions([]);
+        }
+    }, [formData.location, masterData]);
+
+    // Effect to set mill, mmeandworkshop, smed based on selected location
     useEffect(() => {
         const millLocations = [
             'mill_crushing_plant',
@@ -53,20 +156,11 @@ export default function AddAsset() {
         const isMillLocation = millLocations.includes(formData.location);
         setMill(isMillLocation);
 
-        // // Clear asset type if location is empty or if it's not a mill location
-        // if (!formData.location) {
-        //     // If no location selected, clear asset type
-        //     setFormData(prev => ({ ...prev, assetType: '' }));
-        // } else if (!isMillLocation && formData.assetType) {
-        //     // If location is not a mill location but there's an asset type selected, clear it
-        //     setFormData(prev => ({ ...prev, assetType: '' }));
-
         const mmeandworkshopLocations = [
             'mme_workshop_blablabla'
         ];
         const isMMEWorkshopLocation = mmeandworkshopLocations.includes(formData.location);
         setMmenadworkshop(isMMEWorkshopLocation);
-
 
         const smedlocations = [
             'smed_nayak',
@@ -77,7 +171,14 @@ export default function AddAsset() {
         ];
         const isSMEDLocation = smedlocations.includes(formData.location);
         setSmed(isSMEDLocation);
-        // }
+
+        // Reset asset type and category when location changes
+        setFormData(prev => ({
+            ...prev,
+            assetType: '',
+            category: '',
+            trivector: '' // Reset trivector when location changes
+        }));
     }, [formData.location]);
 
     const handleInputChange = (e) => {
@@ -131,8 +232,6 @@ export default function AddAsset() {
         setShowAlert(true);
     };
 
-
-
     const Validation = () => {
         if (!formData.assetName.trim()) {
             showAlertMessage('error', 'Empty Fields', 'Asset Name is empty');
@@ -151,6 +250,12 @@ export default function AddAsset() {
         }
         if (!formData.category.trim()) {
             showAlertMessage('error', 'Empty Fields', 'Asset Category is empty');
+            setIsLoading(false);
+            return false;
+        }
+        // Optional: Add validation for trivector if required
+        if (!formData.trivector.trim()) {
+            showAlertMessage('error', 'Empty Fields', 'Trivector is required');
             setIsLoading(false);
             return false;
         }
@@ -182,6 +287,7 @@ export default function AddAsset() {
         }
 
         console.log('DATE COMMISIONING: ', formData.commissioningDate);
+        console.log('TRIVECTOR: ', formData.trivector); // Log trivector value
         console.log('COMPONENTS: ', components);
         console.log('HAS COMPONENTS: ', formData.hasComponents);
 
@@ -191,11 +297,12 @@ export default function AddAsset() {
                 asset_type: formData.assetType,
                 asset_location: formData.location,
                 asset_category: formData.category,
+                trivector: formData.trivector, // Include trivector in the request
                 date_commisioning: formData.commissioningDate,
                 asset_notes: formData.notes,
                 created_by: empInfo.user_name,
-                has_components: formData.hasComponents, // Send the has_components value
-                components: components // Send components array to backend
+                has_components: formData.hasComponents,
+                components: components
             }).then((res) => {
 
                 // Show success message
@@ -210,6 +317,7 @@ export default function AddAsset() {
                     assetType: '',
                     location: '',
                     category: '',
+                    trivector: '', // Reset trivector
                     commissioningDate: '',
                     notes: '',
                     hasComponents: '0'
@@ -224,6 +332,14 @@ export default function AddAsset() {
             console.log('Unable to submit!', err);
             setIsLoading(false);
         }
+    };
+
+    // Helper function to format display names
+    const formatDisplayName = (value) => {
+        return value
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     };
 
     return (
@@ -407,27 +523,19 @@ export default function AddAsset() {
                                             }}
                                         >
                                             <option value="" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Select location</option>
-                                            {/* Mill */}
-                                            <option value="mill_crushing_plant" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Mill Crushing Plant</option>
-                                            <option value="mill_washing_plant" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Mill Washing Plant</option>
-                                            <option value="mill_grinding_plant" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Mill Grinding Plant</option>
-                                            <option value="mill_cip_complex" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Mill CIP Complex</option>
-                                            <option value="mill_lower_tram" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Mill Lower Tram</option>
-                                            <option value="mill_lime_plant" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Mill Lime Plant</option>
-                                            {/* MME AND Workshop */}
-                                            <option value="mme_workshop_blablabla" style={{ backgroundColor: '#fff', color: '#171C2D' }}>MME & Workshop BLA BLA BLA</option>
-                                            {/* SMED */}
-                                            <option value="smed_nayak" style={{ backgroundColor: '#fff', color: '#171C2D' }}>SMED Nayak</option>
-                                            <option value="smed_tubo" style={{ backgroundColor: '#fff', color: '#171C2D' }}>SMED Tubo</option>
-                                            <option value="smed_upper_tram" style={{ backgroundColor: '#fff', color: '#171C2D' }}>SMED Upper Tram</option>
-                                            <option value="smed_cip_grinding" style={{ backgroundColor: '#fff', color: '#171C2D' }}>SMED CIP & Grinding</option>
-                                            <option value="smed_power_plant" style={{ backgroundColor: '#fff', color: '#171C2D' }}>SMED Power Plant</option>
-                                            <option value="surface" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Surface - Open Pit</option>
+                                            {/* Dynamically render options from API */}
+                                            {locationOptions.map((locationValue, index) => (
+                                                <option
+                                                    key={index}
+                                                    value={locationValue}
+                                                    style={{ backgroundColor: '#fff', color: '#171C2D' }}
+                                                >
+                                                    {formatDisplayName(locationValue)}
+                                                </option>
+                                            ))}
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>
-
-
                             </Row>
 
                             <Row style={{ marginBottom: '30px' }}>
@@ -462,6 +570,7 @@ export default function AddAsset() {
                                                 backgroundSize: '16px',
                                                 transition: 'all 0.3s ease'
                                             }}
+                                            disabled={!formData.location}
                                             onFocus={(e) => {
                                                 e.target.style.borderColor = '#E37239';
                                             }}
@@ -469,32 +578,18 @@ export default function AddAsset() {
                                                 e.target.style.borderColor = '#e9ecef';
                                             }}
                                         >
-                                            <option value="" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Select asset type</option>
-
-                                            {mill && (
-                                                <>
-                                                    <option value="gearbox" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Gearbox</option>
-                                                    <option value="geared_motor" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Geared Motor</option>
-                                                    <option value="geared_exciter" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Geared Exciter</option>
-                                                    <option value="hydraulic_drive" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Hydraulic Drive</option>
-                                                    <option value="recirculating_oil_system" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Recirculating Oil System</option>
-                                                </>
-                                            )}
-                                            {mmeandworkshop && (
-                                                <>
-                                                    <option value="rotary_screw_compressors" style={{ backgroundColor: '#fff', color: '#171C2D' }}>WORKSHOP</option>
-                                                    <option value="rotary_screw_compressors" style={{ backgroundColor: '#fff', color: '#171C2D' }}>MME</option>
-                                                </>
-                                            )}
-
-                                            {smed && (
-                                                <>
-                                                    <option value="rotary_screw_compressors" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Rotary Screw Compressors</option>
-                                                    <option value="piston_compressors" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Piston Compressors</option>
-                                                    <option value="stationary_engines" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Stationary Engines</option>
-                                                </>
-                                            )}
-
+                                            <option value="" style={{ backgroundColor: '#fff', color: '#171C2D' }}>
+                                                {!formData.location ? 'Please select a location first' : 'Select asset type'}
+                                            </option>
+                                            {assetTypeOptions.map((type, index) => (
+                                                <option
+                                                    key={index}
+                                                    value={type}
+                                                    style={{ backgroundColor: '#fff', color: '#171C2D' }}
+                                                >
+                                                    {formatDisplayName(type)}
+                                                </option>
+                                            ))}
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>
@@ -530,6 +625,7 @@ export default function AddAsset() {
                                                 backgroundSize: '16px',
                                                 transition: 'all 0.3s ease'
                                             }}
+                                            disabled={!formData.location}
                                             onFocus={(e) => {
                                                 e.target.style.borderColor = '#E37239';
                                             }}
@@ -537,48 +633,73 @@ export default function AddAsset() {
                                                 e.target.style.borderColor = '#e9ecef';
                                             }}
                                         >
-                                            <option value="" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Select category</option>
-                                            {mill && (
-                                                <>
-                                                    <option value="conveyor" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Conveyor</option>
-                                                    <option value="tertiary_feeder" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Tertiary Feeder</option>
-                                                    <option value="surge_bin_feeder" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Surge Bin Feeder</option>
-                                                    <option value="classifier" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Classifier</option>
-                                                    <option value="vibrating_screen" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Vibrating Screen</option>
-                                                    <option value="cone_crusher" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Cone Crusher</option>
-                                                    <option value="cone_crusher_ros" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Cone Crusher ROS</option>
-                                                    <option value="washing_screen" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Washing Screen</option>
-                                                    <option value="rod_mill" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Rod Mill</option>
-                                                    <option value="rod_mill_ros" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Rod Mill ROS</option>
-                                                    <option value="ball_mill" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Ball Mill</option>
-                                                    <option value="ball_mill_ros" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Ball Mill ROS</option>
-                                                    <option value="adsorption_tank" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Adsorption Tank</option>
-                                                    <option value="leach_tank" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Leach Tank</option>
-                                                    <option value="gear" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Gear</option>
-                                                    <option value="hydraulic" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Hydraulic</option>
-                                                    <option value="pump" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Pump</option>
-                                                    <option value="p&h_crane" style={{ backgroundColor: '#fff', color: '#171C2D' }}>P&H Crane</option>
-                                                    <option value="agitator" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Agitator</option>
-                                                    <option value="screw_feeder" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Screw Feeder</option>
-
-                                                </>
-                                            )}
-
-                                            {mmeandworkshop && (
-                                                <option value="smeedddok" style={{ backgroundColor: '#fff', color: '#171C2D' }}>MME & WORKSHOP</option>
-                                            )}
-
-                                            {smed && (
-                                                <option value="smeedddok" style={{ backgroundColor: '#fff', color: '#171C2D' }}>SMEED</option>
-                                            )}
-
-
+                                            <option value="" style={{ backgroundColor: '#fff', color: '#171C2D' }}>
+                                                {!formData.location ? 'Please select a location first' : 'Select category'}
+                                            </option>
+                                            {categoryOptions.map((category, index) => (
+                                                <option
+                                                    key={index}
+                                                    value={category}
+                                                    style={{ backgroundColor: '#fff', color: '#171C2D' }}
+                                                >
+                                                    {formatDisplayName(category)}
+                                                </option>
+                                            ))}
                                         </Form.Select>
                                     </Form.Group>
                                 </Col>
                             </Row>
 
+                            {/* New Row for Trivector */}
                             <Row style={{ marginBottom: '30px' }}>
+                                <Col lg={6}>
+                                    <Form.Group className="mb-1" controlId="trivector">
+                                        <Form.Label style={{
+                                            fontWeight: '600',
+                                            fontSize: '0.9rem',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.5px',
+                                            color: '#254252',
+                                            display: 'block'
+                                        }}>Trivector</Form.Label>
+                                        <Form.Select
+                                            name="trivector"
+                                            value={formData.trivector}
+                                            onChange={handleInputChange}
+                                            style={{
+                                                backgroundColor: '#fff',
+                                                border: '2px solid #e9ecef',
+                                                borderRadius: '12px',
+                                                padding: '16px 20px',
+                                                fontSize: '1rem',
+                                                color: '#171C2D',
+                                                width: '100%',
+                                                outline: 'none',
+                                                cursor: 'pointer',
+                                                appearance: 'none',
+                                                backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23E37239' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`,
+                                                backgroundRepeat: 'no-repeat',
+                                                backgroundPosition: 'right 20px center',
+                                                backgroundSize: '16px',
+                                                transition: 'all 0.3s ease'
+                                            }}
+                                            onFocus={(e) => {
+                                                e.target.style.borderColor = '#E37239';
+                                            }}
+                                            onBlur={(e) => {
+                                                e.target.style.borderColor = '#e9ecef';
+                                            }}
+                                        >
+                                            <option value="">Select trivector type</option>
+                                            {trivectorOptions.map((option, index) => (
+                                                <option key={index} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+
                                 <Col lg={6}>
                                     <Form.Group className="mb-1" controlId="commissioningDate">
                                         <Form.Label style={{
@@ -614,8 +735,10 @@ export default function AddAsset() {
                                         />
                                     </Form.Group>
                                 </Col>
+                            </Row>
 
-                                <Col lg={6}>
+                            <Row style={{ marginBottom: '30px' }}>
+                                <Col lg={12}>
                                     <Form.Group className="mb-1" controlId="notes">
                                         <Form.Label style={{
                                             fontWeight: '600',
@@ -688,11 +811,10 @@ export default function AddAsset() {
                                                 const newValue = formData.hasComponents === '1' ? '0' : '1';
                                                 setFormData({ ...formData, hasComponents: newValue });
                                                 if (newValue === '0') {
-                                                    setComponents([]); // Clear components when toggled off
+                                                    setComponents([]);
                                                 }
                                             }}
                                         >
-                                            {/* The Switch */}
                                             <div style={{
                                                 width: '60px',
                                                 height: '30px',
@@ -716,8 +838,6 @@ export default function AddAsset() {
                                                     boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
                                                 }} />
                                             </div>
-
-                                            {/* Yes/No Labels */}
                                             <span style={{
                                                 fontSize: '0.9rem',
                                                 fontWeight: '600',
@@ -767,6 +887,7 @@ export default function AddAsset() {
                                                         backgroundSize: '16px',
                                                         transition: 'all 0.3s ease'
                                                     }}
+                                                    disabled={!formData.location}
                                                     onFocus={(e) => {
                                                         e.target.style.borderColor = '#E37239';
                                                     }}
@@ -774,31 +895,18 @@ export default function AddAsset() {
                                                         e.target.style.borderColor = '#e9ecef';
                                                     }}
                                                 >
-
-                                                    <option value="" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Select category</option>
-                                                    {mill && (
-                                                        <>
-                                                            <option value="gear_pressure" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Gear,Pressure</option>
-                                                            <option value="gera_splash" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Gear, Splash</option>
-                                                            <option value="bearing_oil_lubricated" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Bearing, Oil lubricated</option>
-                                                            <option value="hydraulic_mineral_high_Preassure_200-3000_psi" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Hydraulic, Mineral, High Pressure 2000-3000 psi</option>
-                                                        </>
-                                                    )}
-
-                                                    {mmeandworkshop && (
-                                                        <>
-                                                            <option value="gear_pressure" style={{ backgroundColor: '#fff', color: '#171C2D' }}>TEST COMPONENT MME</option>
-                                                        </>
-                                                    )}
-
-                                                    {smed && (
-                                                        <>
-                                                            <option value="gear_pressure" style={{ backgroundColor: '#fff', color: '#171C2D' }}>TEST COMPONENT SMED</option>
-                                                        </>
-                                                    )}
-
-
-
+                                                    <option value="" style={{ backgroundColor: '#fff', color: '#171C2D' }}>
+                                                        {!formData.location ? 'Please select a location first' : 'Select component type'}
+                                                    </option>
+                                                    {componentTypeOptions.map((compType, index) => (
+                                                        <option
+                                                            key={index}
+                                                            value={compType}
+                                                            style={{ backgroundColor: '#fff', color: '#171C2D' }}
+                                                        >
+                                                            {formatDisplayName(compType)}
+                                                        </option>
+                                                    ))}
                                                 </Form.Select>
                                             </Form.Group>
                                         </Col>
@@ -891,7 +999,7 @@ export default function AddAsset() {
                                                             border: '1px solid #e9ecef'
                                                         }}>
                                                             <div>
-                                                                <strong style={{ color: '#E37239' }}>{comp.componentType}</strong>
+                                                                <strong style={{ color: '#E37239' }}>{formatDisplayName(comp.componentType)}</strong>
                                                                 <span style={{ margin: '0 10px', color: '#254252' }}>|</span>
                                                                 <span style={{ color: '#254252' }}>{comp.componentName}</span>
                                                             </div>
