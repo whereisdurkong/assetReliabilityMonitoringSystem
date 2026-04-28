@@ -2,7 +2,6 @@ import { lazy } from 'react';
 
 import Mainlayout from 'layouts/AdminLayout';
 import Maintenance from '../views/maintenance';
-import ViewSubmittedAsset from '../views/oil-analysis/view-submitted-asset';
 import SetupAllOptions from '../views/setup/setup_all_options';
 import SetupOptionView from '../views/setup/setup_option_view';
 
@@ -29,6 +28,10 @@ const SubmitAsset = lazy(() => import('../views/oil-analysis/submit-asset'));
 
 const AssetSetup = lazy(() => import('../views/setup/setup_options'))
 const TrivectorSetup = lazy(() => import('../views/setup/setup_option_trivector'))
+
+
+import ViewSubmittedAsset from '../views/oil-analysis/view-submitted-asset';
+const Test = lazy(() => import('../views/oil-analysis/test'))
 
 const Access = () => {
 
@@ -100,7 +103,7 @@ const MainRoutes = {
       element: <AllSubmitAssets />
     },
     {
-      path: '/View-submitted-asset',
+      path: '/view-submitted-asset',
       element: <ViewSubmittedAsset />
     },
     {
@@ -126,6 +129,12 @@ const MainRoutes = {
       path: '/add-trivector-setup',
       element: <TrivectorSetup />
     },
+
+    {
+      path: '/test',
+      element: <Test />
+    },
+
 
 
   ]

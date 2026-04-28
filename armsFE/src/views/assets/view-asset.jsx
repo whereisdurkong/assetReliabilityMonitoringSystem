@@ -1,15 +1,26 @@
 import { useEffect, useState, useRef } from 'react';
-import { Form, Container, Row, Col, Button, Modal, Badge, Table, InputGroup } from 'react-bootstrap';
+import { Form, Container, Row, Col, Button, Modal, Badge } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Loading from '../../components/personalComponents/loading';
 import AlertModal from '../../components/personalComponents/alertModal';
+import {
+    FiSave, FiPlus, FiEdit2, FiInfo, FiTag, FiCalendar,
+    FiActivity, FiUser, FiClock, FiTrendingUp, FiSettings,
+    FiCpu, FiDatabase, FiZap, FiBox, FiX,
+    FiMapPin,
+    FiSliders,
+    FiGrid,
+    FiClipboard
+} from 'react-icons/fi';
+import { MdOutlineLocationOn, MdCategory, MdInventory } from 'react-icons/md';
 
 import axios from 'axios';
 import config from 'config';
+import FeatherIcon from 'feather-icons-react';
 
 export default function ViewAsset() {
     const asset_id = new URLSearchParams(window.location.search).get('id');
-    const [confirmModal, setConfirmModal] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
         assetName: '',
         assetType: '',
@@ -23,10 +34,7 @@ export default function ViewAsset() {
         created_at: ''
     });
 
-    // Add a ref to store the original data
     const originalData = useRef(null);
-
-    // Alert state
     const [showAlert, setShowAlert] = useState(false);
     const [alertConfig, setAlertConfig] = useState({
         type: 'success',
@@ -35,46 +43,33 @@ export default function ViewAsset() {
     });
 
     const [isLoading, setIsLoading] = useState(false);
-
-    // Add state for dynamic options
     const [locationOptions, setLocationOptions] = useState([]);
     const [assetTypeOptions, setAssetTypeOptions] = useState([]);
     const [categoryOptions, setCategoryOptions] = useState([]);
     const [componentTypeOptions, setComponentTypeOptions] = useState([]);
-
-    // Store the full API data for filtering
     const [masterData, setMasterData] = useState([]);
+    const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-    // Trivector options
     const trivectorOptions = [
         { label: 'Rotating Machine', value: 'rotating-machine' },
         { label: 'Stationary Engine', value: 'stationary-engine' },
         { label: 'Mobile Engine', value: 'mobile-engine' }
     ];
 
-    // Component management states
     const [components, setComponents] = useState([]);
-    const [hasComponents, setHasComponents] = useState(false);
     const [showComponentModal, setShowComponentModal] = useState(false);
     const [editingComponent, setEditingComponent] = useState(null);
     const [componentFormData, setComponentFormData] = useState({
         componentName: '',
         componentType: ''
     });
-    const [originalComponents, setOriginalComponents] = useState([]);
 
-    // Add this state to track if options are loaded
-    const [optionsLoaded, setOptionsLoaded] = useState(false);
-
-    // Fetch location options from API
     useEffect(() => {
         const fetchLocationOptions = async () => {
             try {
                 const res = await axios.get(`${config.baseApi}/assetsAnalysis/get-all-options-master`);
                 const data = res.data || [];
-                setMasterData(data); // Store all data
-
-                // Collect all unique location options
+                setMasterData(data);
                 const allLocations = [];
                 data.forEach(item => {
                     if (item.option_asset_location) {
@@ -87,19 +82,14 @@ export default function ViewAsset() {
                         });
                     }
                 });
-
                 setLocationOptions(allLocations);
-                setOptionsLoaded(true);
-                console.log('Location options:', allLocations);
             } catch (error) {
                 console.error('Error fetching location options:', error);
             }
         };
-
         fetchLocationOptions();
     }, []);
 
-    // Filter options based on selected location
     useEffect(() => {
         if (!formData.location || masterData.length === 0) {
             setAssetTypeOptions([]);
@@ -108,7 +98,6 @@ export default function ViewAsset() {
             return;
         }
 
-        // Find the data entry that contains the selected location
         const selectedLocationData = masterData.find(item => {
             if (item.option_asset_location) {
                 const locations = item.option_asset_location.split(',').map(loc => loc.trim());
@@ -118,7 +107,6 @@ export default function ViewAsset() {
         });
 
         if (selectedLocationData) {
-            // Process asset types
             if (selectedLocationData.option_asset_type) {
                 const types = selectedLocationData.option_asset_type.split(',').map(type => type.trim());
                 setAssetTypeOptions(types);
@@ -126,7 +114,6 @@ export default function ViewAsset() {
                 setAssetTypeOptions([]);
             }
 
-            // Process categories
             if (selectedLocationData.option_asset_category) {
                 const categories = selectedLocationData.option_asset_category.split(',').map(cat => cat.trim());
                 setCategoryOptions(categories);
@@ -134,16 +121,13 @@ export default function ViewAsset() {
                 setCategoryOptions([]);
             }
 
-            // Process component types
             if (selectedLocationData.option_component_types) {
                 const compTypes = selectedLocationData.option_component_types.split('/').map(type => type.trim());
                 setComponentTypeOptions(compTypes);
-                console.log('Component Types for selected location:', compTypes);
             } else {
                 setComponentTypeOptions([]);
             }
         } else {
-            // No matching data found
             setAssetTypeOptions([]);
             setCategoryOptions([]);
             setComponentTypeOptions([]);
@@ -158,18 +142,12 @@ export default function ViewAsset() {
         }));
     };
 
-    // Function to find changed fields
     const findChangedFields = (original, current) => {
         const changes = {};
-
         Object.keys(current).forEach(key => {
-            // Skip comparing created_at and created_by as they shouldn't be considered for updates
             if (key === 'created_at' || key === 'created_by') return;
-
-            // Convert both values to strings for comparison
             const originalValue = original[key]?.toString() || '';
             const currentValue = current[key]?.toString() || '';
-
             if (originalValue !== currentValue) {
                 changes[key] = {
                     from: originalValue || '(empty)',
@@ -177,19 +155,17 @@ export default function ViewAsset() {
                 };
             }
         });
-
         return changes;
     };
 
     useEffect(() => {
         const fetch = async () => {
             try {
+                setIsLoading(true);
                 const res = await axios.get(`${config.baseApi}/assets/get-asset-by-id`, {
                     params: { id: asset_id }
                 });
-
                 const data = res.data || [];
-
                 const fetchedData = {
                     assetName: data.asset_name,
                     assetType: data.asset_type,
@@ -202,28 +178,23 @@ export default function ViewAsset() {
                     created_at: data.created_at,
                     created_by: data.created_by
                 };
-
-                // Store components data
                 setComponents(data.components || []);
-                setOriginalComponents(data.components || []);
-                setHasComponents(data.components_count > 0);
-
-                // Store the original data in the ref
                 originalData.current = fetchedData;
-
                 setFormData(fetchedData);
-
-                console.log('Original data loaded:', data);
+                setIsDataLoaded(true);
             } catch (error) {
                 console.error('Error fetching asset:', error);
                 showAlertMessage('error', 'Error', 'Failed to load asset data');
+                setIsDataLoaded(true);
+            } finally {
+                setIsLoading(false);
             }
         };
-
-        fetch();
+        if (asset_id) {
+            fetch();
+        }
     }, [asset_id]);
 
-    // Helper function to format display names
     const formatDisplayName = (value) => {
         if (!value) return '';
         return value
@@ -232,20 +203,19 @@ export default function ViewAsset() {
             .join(' ');
     };
 
-    // Function to show alert messages
     const showAlertMessage = (type, title, description) => {
         setAlertConfig({ type, title, description });
         setShowAlert(true);
     };
 
     const toggleActiveStatus = () => {
+        if (!isEditing) return;
         setFormData(prev => ({
             ...prev,
             isActive: prev.isActive === '1' ? '0' : '1'
         }));
     };
 
-    // Component management functions
     const handleAddComponent = () => {
         setEditingComponent(null);
         setComponentFormData({
@@ -255,11 +225,7 @@ export default function ViewAsset() {
         setShowComponentModal(true);
     };
 
-
-
-    // Update the handleEditComponent function to log and verify the component object
     const handleEditComponent = (component) => {
-        console.log('Editing component:', component); // Add this to debug
         setEditingComponent(component);
         setComponentFormData({
             componentName: component.componentName,
@@ -268,7 +234,6 @@ export default function ViewAsset() {
         setShowComponentModal(true);
     };
 
-    // Update the handleSaveComponent function to use the correct property
     const handleSaveComponent = async () => {
         if (!componentFormData.componentName.trim()) {
             showAlertMessage('error', 'Validation Error', 'Component name is required');
@@ -284,11 +249,6 @@ export default function ViewAsset() {
             const empInfo = JSON.parse(localStorage.getItem("user"));
 
             if (editingComponent) {
-                // Log the editingComponent to see its structure
-                console.log('Editing component object:', editingComponent);
-                console.log('Component ID:', editingComponent.asset_component_id);
-
-                // Update existing component - uncomment when API endpoint is ready
                 await axios.post(`${config.baseApi}/assets/update-component`, {
                     asset_id: asset_id,
                     component_id: editingComponent.asset_component_id,
@@ -296,55 +256,18 @@ export default function ViewAsset() {
                     component_type: componentFormData.componentType,
                     updated_by: empInfo.user_name
                 });
-
-                // Update local state
-                const updatedComponents = components.map(c =>
-                    c.component_id === editingComponent.component_id
-                        ? {
-                            ...c,
-                            componentName: componentFormData.componentName,
-                            componentType: componentFormData.componentType
-                        }
-                        : c
-                );
-                setComponents(updatedComponents);
-                setOriginalComponents(updatedComponents);
-
                 showAlertMessage('success', 'Success', 'Component updated successfully');
-
-                setTimeout(() => {
-                    window.location.reload();
-                }, 200);
+                setTimeout(() => window.location.reload(), 200);
             } else {
-                // Add new component
-                const response = await axios.post(`${config.baseApi}/assets/add-component`, {
+                await axios.post(`${config.baseApi}/assets/add-component`, {
                     asset_id: asset_id,
                     component_name: componentFormData.componentName,
                     component_type: componentFormData.componentType,
                     created_by: empInfo.user_name
                 });
-
-                // Add new component to local state
-                const newComponent = {
-                    component_id: response.data.asset_component_id,
-                    componentName: componentFormData.componentName,
-                    componentType: componentFormData.componentType,
-                    created_by: empInfo.user_name,
-                    created_at: new Date().toISOString()
-                };
-
-                const updatedComponents = [...components, newComponent];
-                setComponents(updatedComponents);
-                setOriginalComponents(updatedComponents);
-                setHasComponents(true);
-
                 showAlertMessage('success', 'Success', 'Component added successfully');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 200);
-
+                setTimeout(() => window.location.reload(), 200);
             }
-
             setShowComponentModal(false);
         } catch (error) {
             console.error('Error saving component:', error);
@@ -365,83 +288,59 @@ export default function ViewAsset() {
     const Validation = () => {
         if (!formData.assetName?.trim()) {
             showAlertMessage('error', 'Empty Fields', 'Asset Name is empty');
-            setIsLoading(false);
             return false;
         }
         if (!formData.assetType?.trim()) {
             showAlertMessage('error', 'Empty Fields', 'Asset Type is empty');
-            setIsLoading(false);
             return false;
         }
         if (!formData.location?.trim()) {
             showAlertMessage('error', 'Empty Fields', 'Asset Location is empty');
-            setIsLoading(false);
             return false;
         }
         if (!formData.category?.trim()) {
             showAlertMessage('error', 'Empty Fields', 'Asset Category is empty');
-            setIsLoading(false);
             return false;
         }
         if (!formData.trivector?.trim()) {
             showAlertMessage('error', 'Empty Fields', 'Trivector is required');
-            setIsLoading(false);
             return false;
         }
         if (!formData.commissioningDate?.trim()) {
             showAlertMessage('error', 'Empty Fields', 'Asset Commissioning Date is empty');
-            setIsLoading(false);
             return false;
         }
-
         return true;
     };
 
     const handleUpdate = async (e) => {
-        e.preventDefault()
-        console.log('WORKING')
-
+        e.preventDefault();
         setIsLoading(true);
-
         const empInfo = JSON.parse(localStorage.getItem("user"));
         if (!Validation()) {
+            setIsLoading(false);
             return;
         }
 
-        let changes_made = ""; // Initialize as empty string
-
-        // Find and log changed fields
+        let changes_made = "";
         if (originalData.current) {
             const changedFields = findChangedFields(originalData.current, formData);
-
             if (Object.keys(changedFields).length > 0) {
-                // Build the changes string
                 const changeStrings = [];
-
-                console.log(`${empInfo.user_name} made the following changes:`);
                 Object.keys(changedFields).forEach(key => {
-                    // Format the field name to be more readable
                     let fieldName = key.replace(/([A-Z])/g, ' $1').toLowerCase().trim();
                     if (fieldName === 'is active') fieldName = 'status';
-
-                    // Create change description
                     const changeDesc = `${fieldName} from '${changedFields[key].from}' to '${changedFields[key].to}'`;
                     changeStrings.push(changeDesc);
-
-                    console.log(`${empInfo.user_name} changed the ${changeDesc}`);
                 });
-
-                // Join all changes with commas
                 changes_made = changeStrings.join(', ');
-                console.log('changes_made:', changes_made);
             } else {
                 changes_made = "No changes were made";
-                console.log(`${empInfo.user_name} clicked update but no fields were changed`);
             }
         }
 
         try {
-            const response = await axios.post(`${config.baseApi}/assets/update-assets`, {
+            await axios.post(`${config.baseApi}/assets/update-assets`, {
                 asset_id: asset_id,
                 asset_name: formData.assetName,
                 asset_type: formData.assetType,
@@ -452,37 +351,32 @@ export default function ViewAsset() {
                 asset_notes: formData.notes,
                 is_active: formData.isActive,
                 updated_by: empInfo.user_name,
-                changes_made: changes_made // This will be stored in your assets_logs table
+                changes_made: changes_made
             });
-
-            // Show success message
-            showAlertMessage(
-                'success',
-                'Successful!',
-                `Asset ${formData.assetName} was successfully updated!`
-            );
-
-            // Reset to original data
-            if (originalData.current) {
-                setFormData(originalData.current);
-            }
-
-            setTimeout(() => {
-                window.location.reload();
-            }, 1000);
-
+            showAlertMessage('success', 'Successful!', `Asset ${formData.assetName} was successfully updated!`);
+            setIsEditing(false);
+            originalData.current = { ...formData };
+            setTimeout(() => window.location.reload(), 1000);
         } catch (err) {
             console.log('Unable to update!', err);
-
             const errorMessage = err.response?.data?.message || err.message || 'An error occurred while updating';
-
-            showAlertMessage(
-                'error',
-                'Unable to update',
-                errorMessage
-            );
+            showAlertMessage('error', 'Unable to update', errorMessage);
             setIsLoading(false);
         }
+    };
+
+    const handleEditClick = () => {
+        console.log('Edit button clicked'); // Debug log
+        if (isDataLoaded && !isLoading) {
+            setIsEditing(true);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        if (originalData.current) {
+            setFormData(originalData.current);
+        }
+        setIsEditing(false);
     };
 
     return (
@@ -492,11 +386,26 @@ export default function ViewAsset() {
             padding: '40px',
             position: 'relative',
             overflow: 'hidden',
-            paddingTop: '100px'
+            paddingTop: '50px'
         }}>
+            {/* Animated background elements */}
+            <div style={{
+                position: 'absolute', width: '600px', height: '600px', borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.05)', top: '-200px', right: '-200px',
+                animation: 'float 25s infinite ease-in-out', zIndex: 1
+            }} />
+            <div style={{
+                position: 'absolute', width: '400px', height: '400px', borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.05)', bottom: '-150px', left: '-150px',
+                animation: 'float 20s infinite ease-in-out reverse', zIndex: 1
+            }} />
+            <div style={{
+                position: 'absolute', width: '300px', height: '300px', borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.03)', top: '50%', left: '20%',
+                animation: 'float 18s infinite ease-in-out', zIndex: 1
+            }} />
             <Loading show={isLoading} />
 
-            {/* Alert Modal */}
             {showAlert && (
                 <div style={{
                     position: 'fixed',
@@ -514,42 +423,55 @@ export default function ViewAsset() {
                 </div>
             )}
 
-
-
             {/* Component Modal */}
-            <Modal show={showComponentModal} onHide={() => setShowComponentModal(false)} centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>
+            <Modal show={showComponentModal} onHide={() => setShowComponentModal(false)} centered contentClassName="custom-modal-content">
+                <Modal.Header closeButton style={{ borderBottom: '1px solid #e2e8f0', background: 'linear-gradient(165deg, #eebf81 0%, #ffa600 100%)', color: 'white', borderRadius: '16px 16px 0 0' }}>
+                    <Modal.Title style={{ fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#2b2b2b' }}>
+                        <FiCpu size={23} color='#4e4e4e' />
                         {editingComponent ? 'Edit Component' : 'Add New Component'}
                     </Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
+                <Modal.Body style={{ padding: '20px', }}>
                     <Form>
                         <Form.Group className="mb-3">
-                            <Form.Label>Component Name <span style={{ color: '#E37239' }}>*</span></Form.Label>
+                            <Form.Label style={{ fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#334155' }}>
+                                Component Name <span style={{ color: '#ef4444' }}>*</span>
+                            </Form.Label>
                             <Form.Control
                                 type="text"
                                 name="componentName"
                                 value={componentFormData.componentName}
                                 onChange={handleComponentInputChange}
-                                placeholder="Enter component name (e.g., Motor, Pump, Gearbox)"
+                                placeholder="e.g., Motor, Pump, Gearbox"
                                 style={{
-                                    borderRadius: '12px',
-                                    padding: '12px 16px'
+                                    border: '2px solid #E2E8F0',
+                                    borderRadius: '10px',
+                                    padding: '12px 16px',
+                                    fontSize: '0.95rem',
+                                    transition: 'all 0.2s'
                                 }}
+                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
                             />
                         </Form.Group>
 
                         <Form.Group className="mb-3">
-                            <Form.Label>Component Type <span style={{ color: '#E37239' }}>*</span></Form.Label>
+                            <Form.Label style={{ fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#334155' }}>
+                                Component Type <span style={{ color: '#ef4444' }}>*</span>
+                            </Form.Label>
                             <Form.Select
                                 name="componentType"
                                 value={componentFormData.componentType}
                                 onChange={handleComponentInputChange}
                                 style={{
-                                    borderRadius: '12px',
-                                    padding: '12px 16px'
+                                    border: '2px solid #E2E8F0',
+                                    borderRadius: '10px',
+                                    padding: '12px 16px',
+                                    fontSize: '0.95rem',
+                                    transition: 'all 0.2s'
                                 }}
+                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
                             >
                                 <option value="">Select component type</option>
                                 {componentTypeOptions.map((type, index) => (
@@ -561,763 +483,453 @@ export default function ViewAsset() {
                         </Form.Group>
                     </Form>
                 </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowComponentModal(false)}>
+                <Modal.Footer style={{ borderTop: '1px solid #e2e8f0', }}>
+                    <Button variant="secondary" onClick={() => setShowComponentModal(false)} style={{
+                        background: 'linear-gradient(135deg, #ea6f6f, #f92f2f)',
+                        border: 'none', borderRadius: '12px', padding: '14px 28px',
+                        fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                        gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
+                        transition: 'all 0.2s ease'
+                    }}
+                        onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
+                        onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}>
                         Cancel
                     </Button>
                     <Button
                         onClick={handleSaveComponent}
+                        variant="secondary"
                         style={{
-                            background: 'linear-gradient(45deg, #EAB56F, #F9982F, #E37239)',
-                            border: 'none',
-                            borderRadius: '12px',
-                            padding: '10px 24px',
-                            fontWeight: '600'
+                            background: 'linear-gradient(135deg, #eab56f, #f99b2f)',
+                            border: 'none', borderRadius: '12px', padding: '14px 28px',
+                            fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center',
+                            gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
+                            transition: 'all 0.2s ease'
                         }}
+                        onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
+                        onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
+
                     >
                         {editingComponent ? 'Update' : 'Add'} Component
                     </Button>
                 </Modal.Footer>
             </Modal>
 
-            {/* Animated background elements */}
-            <div style={{
-                position: 'absolute',
-                width: '600px',
-                height: '600px',
-                borderRadius: '50%',
-                background: 'rgb(255, 255, 255)',
-                opacity: '0.05',
-                top: '-200px',
-                right: '-200px',
-                animation: 'float 25s infinite ease-in-out',
-                zIndex: 1
-            }} />
-            <div style={{
-                position: 'absolute',
-                width: '400px',
-                height: '400px',
-                borderRadius: '50%',
-                background: 'rgb(255, 255, 255)',
-                opacity: '0.05',
-                bottom: '-150px',
-                left: '-150px',
-                animation: 'float 20s infinite ease-in-out reverse',
-                zIndex: 1
-            }} />
-            <div style={{
-                position: 'absolute',
-                width: '300px',
-                height: '300px',
-                borderRadius: '50%',
-                background: 'rgb(255, 255, 255)',
-                opacity: '0.03',
-                top: '50%',
-                left: '20%',
-                animation: 'float 18s infinite ease-in-out',
-                zIndex: 1
-            }} />
-
-            <Container fluid style={{ maxWidth: '1600px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-                <div style={{
-                    maxWidth: '1400px',
-                    margin: '0 auto'
-                }}>
-                    {/* Header */}
-                    <div style={{
-                        marginBottom: '20px',
-                        textAlign: 'start'
-                    }}>
-                        <div style={{
-                            marginBottom: '15px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '15px',
-                            flexWrap: 'wrap'
+            <Container fluid style={{ maxWidth: '1200px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+                {/* Header */}
+                <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                    <div>
+                        <h1 style={{
+                            fontSize: '4.8rem', fontWeight: '700', color: '#EAB56F',
+                            textShadow: '0 4px 20px rgba(255, 0, 0, 0.2)', margin: 0, display: 'flex', alignItems: 'center', gap: '12px'
                         }}>
-                            <h1 style={{
-                                fontSize: '3.5rem',
-                                fontWeight: '800',
-                                color: '#EAB56F',
-                                marginBottom: '10px',
-                                letterSpacing: '-0.5px',
-                                textShadow: '0 4px 20px rgba(234, 181, 111, 0.2)'
-                            }}>Asset ID {asset_id}</h1>
-
-                            {/* is_active status badge */}
-                            <Badge
+                            Asset ID {asset_id}
+                            <div
                                 onClick={toggleActiveStatus}
-                                bg={formData.isActive === '1' ? 'success' : 'secondary'}
                                 style={{
-                                    fontSize: '1rem',
-                                    padding: '8px 16px',
+                                    backgroundColor: formData.isActive === '1' ? '#10b981' : '#ef4444',
+                                    padding: '5px 20px',
                                     borderRadius: '20px',
+                                    fontSize: '20px',
                                     fontWeight: '600',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.5px',
-                                    background: formData.isActive === '1'
-                                        ? 'linear-gradient(45deg, #28a745, #20c997)'
-                                        : 'linear-gradient(45deg, #df7e7e, #c94b4b)',
+                                    color: '#ffffff',
+                                    cursor: isEditing ? 'pointer' : 'default',
                                     border: 'none',
-                                    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
-                                    marginBottom: '10px',
-                                    cursor: 'pointer',
                                     transition: 'all 0.3s ease',
-                                    userSelect: 'none'
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1.05)';
-                                    e.currentTarget.style.boxShadow = '0 6px 15px rgba(0, 0, 0, 0.3)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1)';
-                                    e.currentTarget.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.2)';
+                                    display: 'inline-block',
+                                    textAlign: 'center'
                                 }}
                             >
-                                {formData.isActive === '1' ? '● ACTIVE' : '○ INACTIVE'}
-                            </Badge>
-                        </div>
-                        <p style={{
-                            fontSize: '1.2rem',
-                            color: '#F9982F',
-                            opacity: '0.9',
-                            fontWeight: '400',
-                            maxWidth: '600px',
-                            margin: '0'
-                        }}>Detailed information about the asset and its status</p>
+                                {formData.isActive === '1' ? 'Active' : 'Inactive'}
+                            </div>
+                        </h1>
+                        <p style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.7)', margin: '4px 0 0' }}>View and manage asset details</p>
                     </div>
+                    <div>
+                        {!isEditing ? (
+                            <Button
+                                onClick={handleEditClick}
+                                disabled={!isDataLoaded || isLoading}
+                                style={{
+                                    background: 'linear-gradient(135deg, #EAB56F, #F9982F)',
+                                    border: 'none', borderRadius: '12px', padding: '14px 28px',
+                                    fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                    gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
+                                onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
+                            >
+                                <FiEdit2 size={14} />
+                                Edit Asset
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={handleCancelEdit}
+                                variant="secondary"
+                                style={{
+                                    background: 'linear-gradient(135deg, #ea8c6f, #f94d2f)',
+                                    border: 'none', borderRadius: '12px', padding: '14px 28px',
+                                    fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                    gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
+                                onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
+                            >
+                                <FiX size={14} />
+                                Cancel
+                            </Button>
+                        )}
+                    </div>
+                </div>
 
-                    <Form>
-                        <div style={{
-                            background: '#f1ddc2',
-                            borderRadius: '24px',
-                            padding: '40px',
-                            border: '1px solid rgba(227, 114, 57, 0.2)',
-                            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
-                        }}>
-                            <Row style={{ marginBottom: '30px' }}>
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="assetName">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Asset Name <span style={{ color: '#E37239' }}>*</span></Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            name="assetName"
-                                            value={formData.assetName || ''}
-                                            onChange={handleInputChange}
-                                            placeholder="Enter asset name (e.g., Excavator, Conveyor Belt)"
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        />
-                                    </Form.Group>
-                                </Col>
+                {/* Stats Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                    <StatCard icon={FiBox} label="Asset ID" value={asset_id} textColor="#ff9900" backgroundColor="#ff990023" borderColor="#ff7b00" />
+                    <StatCard icon={FiCalendar} label="Commissioned" value={formData.commissioningDate || '—'} textColor="#7980e6" backgroundColor="#1100ff23" borderColor="#1100ff" />
+                    <StatCard icon={FiCpu} label="Components" value={components.length} textColor="#4dda60" backgroundColor="#00ff0d23" borderColor="#008b13" />
+                    <StatCard icon={FiUser} label="Created By" value={formData.created_by || '—'} textColor="#ccd672" backgroundColor="#ffee0023" borderColor="#eeff00" />
+                </div>
 
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="location">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Location <span style={{ color: '#E37239' }}>*</span></Form.Label>
-                                        <Form.Select
-                                            name="location"
-                                            value={formData.location || ''}
-                                            onChange={handleInputChange}
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                cursor: 'pointer',
-                                                appearance: 'none',
-                                                backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23E37239' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`,
-                                                backgroundRepeat: 'no-repeat',
-                                                backgroundPosition: 'right 20px center',
-                                                backgroundSize: '16px',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        >
-                                            <option value="">Select location</option>
-                                            {locationOptions.map((locationValue, index) => (
-                                                <option
-                                                    key={index}
-                                                    value={locationValue}
-                                                    style={{ backgroundColor: '#fff', color: '#171C2D' }}
-                                                >
-                                                    {formatDisplayName(locationValue)}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            <Row style={{ marginBottom: '30px' }}>
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="assetType">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Asset Type <span style={{ color: '#E37239' }}>*</span></Form.Label>
-                                        <Form.Select
-                                            name="assetType"
-                                            value={formData.assetType || ''}
-                                            onChange={handleInputChange}
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                cursor: 'pointer',
-                                                appearance: 'none',
-                                                backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23E37239' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`,
-                                                backgroundRepeat: 'no-repeat',
-                                                backgroundPosition: 'right 20px center',
-                                                backgroundSize: '16px',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            disabled={!formData.location}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        >
-                                            <option value="">
-                                                {!formData.location ? 'Please select a location first' : 'Select asset type'}
-                                            </option>
-                                            {assetTypeOptions.map((type, index) => (
-                                                <option
-                                                    key={index}
-                                                    value={type}
-                                                    style={{ backgroundColor: '#fff', color: '#171C2D' }}
-                                                >
-                                                    {formatDisplayName(type)}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="category">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Category <span style={{ color: '#E37239' }}>*</span></Form.Label>
-                                        <Form.Select
-                                            name="category"
-                                            value={formData.category || ''}
-                                            onChange={handleInputChange}
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                cursor: 'pointer',
-                                                appearance: 'none',
-                                                backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23E37239' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`,
-                                                backgroundRepeat: 'no-repeat',
-                                                backgroundPosition: 'right 20px center',
-                                                backgroundSize: '16px',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            disabled={!formData.location}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        >
-                                            <option value="">
-                                                {!formData.location ? 'Please select a location first' : 'Select category'}
-                                            </option>
-                                            {categoryOptions.map((category, index) => (
-                                                <option
-                                                    key={index}
-                                                    value={category}
-                                                    style={{ backgroundColor: '#fff', color: '#171C2D' }}
-                                                >
-                                                    {formatDisplayName(category)}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            <Row style={{ marginBottom: '30px' }}>
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="trivector">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Trivector</Form.Label>
-                                        <Form.Select
-                                            name="trivector"
-                                            value={formData.trivector || ''}
-                                            onChange={handleInputChange}
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                cursor: 'pointer',
-                                                appearance: 'none',
-                                                backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23E37239' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`,
-                                                backgroundRepeat: 'no-repeat',
-                                                backgroundPosition: 'right 20px center',
-                                                backgroundSize: '16px',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        >
-                                            <option value="">Select trivector type</option>
-                                            {trivectorOptions.map((option, index) => (
-                                                <option
-                                                    key={index}
-                                                    value={option.value}
-                                                    style={{ backgroundColor: '#fff', color: '#171C2D' }}
-                                                >
-                                                    {option.label}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="commissioningDate">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Date of Commissioning <span style={{ color: '#E37239' }}>*</span></Form.Label>
-                                        <Form.Control
-                                            type="date"
-                                            name="commissioningDate"
-                                            value={formData.commissioningDate || ''}
-                                            onChange={handleInputChange}
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            <Row style={{ marginBottom: '30px' }}>
-                                <Col lg={12}>
-                                    <Form.Group className="mb-1" controlId="notes">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Additional Notes</Form.Label>
-                                        <Form.Control
-                                            as="textarea"
-                                            rows={1}
-                                            name="notes"
-                                            value={formData.notes || ''}
-                                            onChange={handleInputChange}
-                                            placeholder="Enter any additional notes, specifications, or comments..."
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                resize: 'vertical',
-                                                minHeight: '20px',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            <Row style={{ marginBottom: '30px' }}>
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="createdAt">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Created At</Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            name="created_at"
-                                            value={formData.created_at ? new Date(formData.created_at).toLocaleDateString() : ''}
-                                            disabled
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                        />
-                                    </Form.Group>
-                                </Col>
-
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="createdBy">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Created By</Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            name="created_by"
-                                            value={formData.created_by || ''}
-                                            disabled
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            {/* Components Section - Enhanced with Add/Edit functionality */}
-                            <div style={{
-                                marginTop: '20px',
-                                marginBottom: '20px',
-                                padding: '10px',
-                            }}>
-                                <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    marginBottom: '25px',
-                                    flexWrap: 'wrap',
-                                    gap: '15px'
-                                }}>
-                                    <h2 style={{
-                                        fontSize: '1.5rem',
-                                        fontWeight: '700',
-                                        color: '#254252',
-                                        borderBottom: '3px solid #E37239',
-                                        paddingBottom: '10px',
-                                        display: 'inline-block',
-                                        margin: 0
-                                    }}>
-                                        Components ({components.length})
-                                    </h2>
-
-                                    <Button
-                                        onClick={handleAddComponent}
-                                        style={{
-                                            background: 'linear-gradient(45deg, #28a745, #20c997)',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            padding: '10px 24px',
-                                            fontSize: '0.9rem',
-                                            fontWeight: '600',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                            transition: 'all 0.3s ease'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.target.style.transform = 'scale(1.02)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.target.style.transform = 'scale(1)';
-                                        }}
-                                    >
-                                        <span>+</span> Add Component
-                                    </Button>
-                                </div>
-
-                                {components.length > 0 ? (
-                                    <div style={{
-                                        overflowX: 'auto',
-                                    }}>
-                                        <Table
-                                            striped
-                                            hover
-                                            bordered={false}
-                                            style={{
-                                                backgroundColor: 'white',
-                                                borderRadius: '16px',
-                                                overflow: 'hidden',
-                                                marginBottom: 0
-                                            }}
-                                        >
-                                            <thead>
-                                                <tr style={{
-                                                    backgroundColor: '#254252',
-                                                    color: 'white'
-                                                }}>
-                                                    <th style={{
-                                                        padding: '15px 20px',
-                                                        fontWeight: '600',
-                                                        fontSize: '0.9rem',
-                                                        letterSpacing: '0.5px'
-                                                    }}>Component Name</th>
-                                                    <th style={{
-                                                        padding: '15px 20px',
-                                                        fontWeight: '600',
-                                                        fontSize: '0.9rem',
-                                                        letterSpacing: '0.5px'
-                                                    }}>Type</th>
-                                                    <th style={{
-                                                        padding: '15px 20px',
-                                                        fontWeight: '600',
-                                                        fontSize: '0.9rem',
-                                                        letterSpacing: '0.5px'
-                                                    }}>Created By</th>
-                                                    <th style={{
-                                                        padding: '15px 20px',
-                                                        fontWeight: '600',
-                                                        fontSize: '0.9rem',
-                                                        letterSpacing: '0.5px'
-                                                    }}>Created Date</th>
-                                                    <th style={{
-                                                        padding: '15px 20px',
-                                                        fontWeight: '600',
-                                                        fontSize: '0.9rem',
-                                                        letterSpacing: '0.5px',
-                                                        textAlign: 'center'
-                                                    }}>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {components.map((component) => (
-                                                    <tr key={component.component_id}>
-                                                        <td style={{
-                                                            padding: '15px 20px',
-                                                            color: '#E37239',
-                                                            fontWeight: '500',
-                                                            fontSize: '0.95rem'
-                                                        }}>
-                                                            {component.componentName}
-                                                        </td>
-                                                        <td style={{
-                                                            padding: '15px 20px',
-                                                            color: '#254252',
-                                                            fontSize: '0.9rem'
-                                                        }}>
-                                                            {formatDisplayName(component.componentType)}
-                                                        </td>
-                                                        <td style={{
-                                                            padding: '15px 20px',
-                                                            color: '#6c757d',
-                                                            fontSize: '0.9rem'
-                                                        }}>
-                                                            {component.created_by}
-                                                        </td>
-                                                        <td style={{
-                                                            padding: '15px 20px',
-                                                            color: '#6c757d',
-                                                            fontSize: '0.9rem'
-                                                        }}>
-                                                            {new Date(component.created_at).toLocaleDateString()}
-                                                        </td>
-                                                        <td style={{
-                                                            padding: '15px 20px',
-                                                            textAlign: 'center'
-                                                        }}>
-                                                            <Button
-                                                                variant="link"
-                                                                onClick={() => handleEditComponent(component)}
-                                                                style={{
-                                                                    color: '#E37239',
-                                                                    padding: '5px 10px',
-                                                                    textDecoration: 'none',
-                                                                    marginRight: '5px'
-                                                                }}
-                                                            >
-                                                                Edit
-                                                            </Button>
-
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </Table>
-                                    </div>
-                                ) : (
-                                    <div style={{
-                                        textAlign: 'center',
-                                        padding: '40px',
-                                        backgroundColor: 'white',
-                                        borderRadius: '16px',
-                                        color: '#6c757d'
-                                    }}>
-                                        No components added yet. Click "Add Component" to add components to this asset.
+                {/* Main Card */}
+                <div style={{
+                    background: 'white',
+                    borderRadius: '16px',
+                    border: '1px solid #e2e8f0',
+                    overflow: 'hidden',
+                    marginBottom: '24px'
+                }}>
+                    <div style={{ padding: '16px 24px', borderBottom: '1px solid #eef2ff', background: '#fafcff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <FiDatabase size={18} color="#3b82f6" />
+                            <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a', margin: 0 }}>Asset Information</h2>
+                        </div>
+                    </div>
+                    <div style={{ padding: '24px' }}>
+                        {!isEditing ? (
+                            /* Read-only View */
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px 32px' }}>
+                                <InfoRow label="Asset Name" value={formData.assetName} icon={'box'} />
+                                <InfoRow label="Location" value={formatDisplayName(formData.location)} icon={'map-pin'} />
+                                <InfoRow label="Asset Type" value={formatDisplayName(formData.assetType)} icon={'sliders'} />
+                                <InfoRow label="Category" value={formatDisplayName(formData.category)} icon={'grid'} />
+                                <InfoRow label="Trivector" value={trivectorOptions.find(t => t.value === formData.trivector)?.label} icon={'zap'} />
+                                <InfoRow label="Commissioning Date" value={formData.commissioningDate} icon={'calendar'} />
+                                <InfoRow label="Created By" value={formData.created_by} icon={'user'} />
+                                <InfoRow label="Created At" value={formData.created_at ? new Date(formData.created_at).toLocaleString() : '—'} icon={'clock'} />
+                                {formData.notes && (
+                                    <div style={{ gridColumn: 'span 2' }}>
+                                        <InfoRow label="Notes" value={formData.notes} />
                                     </div>
                                 )}
                             </div>
+                        ) : (
+                            /* Edit Form */
+                            <Form>
+                                <Row>
+                                    <Col md={6} style={{ marginBottom: '16px' }}>
+                                        <Form.Group>
 
-                            <Row>
-                                <Col lg={12} style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                    <Button
-                                        onClick={handleUpdate}
-                                        style={{
-                                            background: 'linear-gradient(45deg, #EAB56F, #F9982F, #E37239)',
-                                            border: 'none',
-                                            borderRadius: '16px',
-                                            padding: '18px 36px',
-                                            fontSize: '1.1rem',
-                                            fontWeight: '600',
-                                            letterSpacing: '0.5px',
-                                            color: '#fff',
-                                            cursor: 'pointer',
-                                            minWidth: '200px',
-                                            transition: 'all 0.3s ease',
-                                            boxShadow: '0 10px 20px rgba(227, 114, 57, 0.3)'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.target.style.transform = 'scale(1.02)';
-                                            e.target.style.boxShadow = '0 15px 35px -10px #E37239';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.target.style.transform = 'scale(1)';
-                                            e.target.style.boxShadow = '0 10px 30px -10px #E37239';
-                                        }}
-                                    >
-                                        Save Asset
-                                    </Button>
-                                </Col>
-                            </Row>
-                        </div>
-                    </Form>
+                                            <Form.Label style={{
+                                                fontWeight: '500',
+                                                fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
+                                                alignItems: 'center',
+                                            }}> <FiBox size={14} />Asset Name <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            <Form.Control
+                                                type="text"
+                                                name="assetName"
+                                                value={formData.assetName || ''}
+                                                onChange={handleInputChange}
+                                                style={{
+                                                    border: '2px solid #E2E8F0',
+                                                    borderRadius: '10px',
+                                                    padding: '12px 16px',
+                                                    fontSize: '0.95rem',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                            />
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6} style={{ marginBottom: '16px' }}>
+                                        <Form.Group>
+                                            <Form.Label style={{
+                                                fontWeight: '500',
+                                                fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
+                                                alignItems: 'center',
+                                            }}> <FiMapPin size={14} />Location <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            <Form.Select
+                                                name="location"
+                                                value={formData.location || ''}
+                                                onChange={handleInputChange}
+                                                style={{
+                                                    border: '2px solid #E2E8F0',
+                                                    borderRadius: '10px',
+                                                    padding: '12px 16px',
+                                                    fontSize: '0.95rem',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                            >
+                                                <option value="">Select location</option>
+                                                {locationOptions.map((locationValue, index) => (
+                                                    <option key={index} value={locationValue}>
+                                                        {formatDisplayName(locationValue)}
+                                                    </option>
+                                                ))}
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6} style={{ marginBottom: '16px' }}>
+                                        <Form.Group>
+                                            <Form.Label style={{
+                                                fontWeight: '500',
+                                                fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
+                                                alignItems: 'center',
+                                            }}> <FiSliders size={14} />Asset Type <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            <Form.Select
+                                                name="assetType"
+                                                value={formData.assetType || ''}
+                                                onChange={handleInputChange}
+                                                disabled={!formData.location}
+                                                style={{
+                                                    border: '2px solid #E2E8F0',
+                                                    borderRadius: '10px',
+                                                    padding: '12px 16px',
+                                                    fontSize: '0.95rem',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                            >
+                                                <option value="">{!formData.location ? 'Select location first' : 'Select asset type'}</option>
+                                                {assetTypeOptions.map((type, index) => (
+                                                    <option key={index} value={type}>{formatDisplayName(type)}</option>
+                                                ))}
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6} style={{ marginBottom: '16px' }}>
+                                        <Form.Group>
+                                            <Form.Label style={{
+                                                fontWeight: '500',
+                                                fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
+                                                alignItems: 'center',
+                                            }}> <FiGrid size={14} />Category <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            <Form.Select
+                                                name="category"
+                                                value={formData.category || ''}
+                                                onChange={handleInputChange}
+                                                disabled={!formData.location}
+                                                style={{
+                                                    border: '2px solid #E2E8F0',
+                                                    borderRadius: '10px',
+                                                    padding: '12px 16px',
+                                                    fontSize: '0.95rem',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                            >
+                                                <option value="">{!formData.location ? 'Select location first' : 'Select category'}</option>
+                                                {categoryOptions.map((category, index) => (
+                                                    <option key={index} value={category}>{formatDisplayName(category)}</option>
+                                                ))}
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6} style={{ marginBottom: '16px' }}>
+                                        <Form.Group>
+                                            <Form.Label style={{
+                                                fontWeight: '500',
+                                                fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
+                                                alignItems: 'center',
+                                            }}> <FiZap size={14} /> Trivector <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            <Form.Select
+                                                name="trivector"
+                                                value={formData.trivector || ''}
+                                                onChange={handleInputChange}
+                                                style={{
+                                                    border: '2px solid #E2E8F0',
+                                                    borderRadius: '10px',
+                                                    padding: '12px 16px',
+                                                    fontSize: '0.95rem',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                            >
+                                                <option value="">Select trivector type</option>
+                                                {trivectorOptions.map((option, index) => (
+                                                    <option key={index} value={option.value}>{option.label}</option>
+                                                ))}
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6} style={{ marginBottom: '16px' }}>
+                                        <Form.Group>
+                                            <Form.Label style={{
+                                                fontWeight: '500',
+                                                fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
+                                                alignItems: 'center',
+                                            }}> <FiCalendar size={14} /> Commissioning Date <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            <Form.Control
+                                                type="date"
+                                                name="commissioningDate"
+                                                value={formData.commissioningDate || ''}
+                                                onChange={handleInputChange}
+                                                style={{
+                                                    border: '2px solid #E2E8F0',
+                                                    borderRadius: '10px',
+                                                    padding: '12px 16px',
+                                                    fontSize: '0.95rem',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                            />
+                                        </Form.Group>
+                                    </Col>
+                                    <Col xs={12} style={{ marginBottom: '16px' }}>
+                                        <Form.Group>
+                                            <Form.Label style={{
+                                                fontWeight: '500',
+                                                fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
+                                                alignItems: 'center',
+                                            }}> <FiClipboard size={14} /> Notes</Form.Label>
+                                            <Form.Control
+                                                as="textarea"
+                                                rows={2}
+                                                name="notes"
+                                                value={formData.notes || ''}
+                                                onChange={handleInputChange}
+                                                style={{
+                                                    border: '2px solid #E2E8F0',
+                                                    borderRadius: '10px',
+                                                    padding: '12px 16px',
+                                                    fontSize: '0.95rem',
+                                                    transition: 'all 0.2s',
+                                                    resize: 'vertical'
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                            />
+                                        </Form.Group>
+                                    </Col>
+                                    <Col xs={12}>
+                                        <Button
+                                            onClick={handleUpdate}
+
+                                            style={{
+                                                background: 'linear-gradient(135deg, #EAB56F, #F9982F)',
+                                                border: 'none', borderRadius: '12px', padding: '14px 28px',
+                                                fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                                                cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                                gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
+                                                transition: 'all 0.2s ease', width: '100%', justifyContent: 'center'
+                                            }}
+                                            onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
+                                            onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
+                                        >
+                                            <FiSave size={14} />
+                                            Save Changes
+                                        </Button>
+                                    </Col>
+                                </Row>
+                            </Form>
+                        )}
+                    </div>
                 </div>
-            </Container>
 
+                {/* Components Section */}
+                <div style={{
+                    background: 'white',
+                    borderRadius: '16px',
+                    border: '1px solid #e2e8f0',
+                    overflow: 'hidden'
+                }}>
+                    <div style={{ padding: '16px 24px', borderBottom: '1px solid #eef2ff', background: '#fafcff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <FiCpu size={18} color="#3b82f6" />
+                            <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a', margin: 0 }}>Components ({components.length})</h2>
+                        </div>
+                        {isEditing && (
+                            <Button
+                                onClick={handleAddComponent}
+                                style={{
+                                    background: 'linear-gradient(135deg, #EAB56F, #F9982F)',
+                                    border: 'none', borderRadius: '12px', padding: '14px 28px',
+                                    fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                    gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
+                                    transition: 'all 0.2s ease',
+                                }}
+                                onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
+                                onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
+                            >
+                                <FiPlus size={12} />
+                                Add Component
+                            </Button>
+                        )}
+                    </div>
+                    <div style={{ padding: '0' }}>
+                        {components.length > 0 ? (
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                    <thead>
+                                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                            <th style={{ textAlign: 'left', padding: '12px 16px', fontWeight: '600', color: '#475569' }}>Name</th>
+                                            <th style={{ textAlign: 'left', padding: '12px 16px', fontWeight: '600', color: '#475569' }}>Type</th>
+                                            <th style={{ textAlign: 'left', padding: '12px 16px', fontWeight: '600', color: '#475569' }}>Created By</th>
+                                            <th style={{ textAlign: 'left', padding: '12px 16px', fontWeight: '600', color: '#475569' }}>Date</th>
+                                            {isEditing && <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: '600', color: '#475569' }}>Actions</th>}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {components.map((component, idx) => (
+                                            <tr key={component.component_id || idx} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? 'white' : '#fafcff' }}>
+                                                <td style={{ padding: '10px 16px', fontWeight: '500', color: '#0f172a' }}>{component.componentName}</td>
+                                                <td style={{ padding: '10px 16px', color: '#475569' }}>{formatDisplayName(component.componentType)}</td>
+                                                <td style={{ padding: '10px 16px', color: '#475569' }}>{component.created_by}</td>
+                                                <td style={{ padding: '10px 16px', color: '#475569' }}>{component.created_at ? new Date(component.created_at).toLocaleDateString() : '—'}</td>
+                                                {isEditing && (
+                                                    <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                                                        <Button
+                                                            variant="link"
+                                                            onClick={() => handleEditComponent(component)}
+                                                            style={{ color: '#3b82f6', padding: '0', fontSize: '12px', textDecoration: 'none' }}
+                                                        >
+                                                            Edit
+                                                        </Button>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '48px', background: '#fafcff' }}>
+                                <FiZap size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
+                                <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '12px' }}>No components added yet</p>
+                                {isEditing && (
+                                    <Button variant="link" onClick={handleAddComponent} style={{ color: '#3b82f6', fontSize: '12px', textDecoration: 'none' }}>
+                                        Add your first component →
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </Container >
             <style>
                 {`
-                    select option {
-                        background-color: #fff !important;
-                        color: #171C2D !important;
-                        padding: 12px !important;
-                    }
-                    
-                    input[type="date"]::-webkit-calendar-picker-indicator {
-                        filter: invert(0.3);
-                        cursor: pointer;
-                        padding: 5px;
-                    }
-
-                    input[type="date"]::-webkit-calendar-picker-indicator:hover {
-                        filter: invert(0.2);
-                    }
-
                     @keyframes float {
                         0%, 100% { transform: translate(0, 0) rotate(0deg); }
                         33% { transform: translate(50px, -50px) rotate(120deg); }
@@ -1325,6 +937,37 @@ export default function ViewAsset() {
                     }
                 `}
             </style>
-        </div>
+        </div >
     );
 }
+
+// Stat Card Component
+const StatCard = ({ icon: Icon, label, value, textColor, backgroundColor, borderColor }) => (
+    <div style={{
+        background: backgroundColor || '#ffd9003a',
+        borderRadius: '12px',
+        padding: '16px',
+        border: `2px solid ${borderColor || '#006eff'}`,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+    }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', }}>
+            <Icon size={18} color='#ffffff' />
+            <span style={{ fontSize: '12px', fontWeight: '600', color: '#cfcfcf', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
+        </div>
+        <div style={{ fontSize: '20px', fontWeight: '700', color: textColor || '#0f172a' }}>{value || '—'}</div>
+    </div>
+);
+
+// Info Row Component
+const InfoRow = ({ label, value, icon }) => (
+    <div>
+        <div style={{
+            fontWeight: '500',
+            fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
+            alignItems: 'center',
+        }}> <FeatherIcon icon={icon} size={14} color="#ff6600" />
+            {label}
+        </div>
+        <div style={{ fontSize: '14px', fontWeight: '500', color: '#0f172a', marginLeft: '25px' }}>{value || '—'}</div>
+    </div>
+);

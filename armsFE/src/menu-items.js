@@ -24,26 +24,26 @@ const menuItems = {
         }
       ]
     },
-    {
-      id: 'Authenticaiton',
-      title: 'Sample Pages',
-      type: 'group',
-      icon: 'icon-navigation',
-      children: [
-        {
-          id: 'register',
-          title: 'Register',
-          type: 'item',
-          icon: 'material-icons-two-tone',
-          iconname: 'home',
-          url: '/register'
+    // {
+    //   id: 'Authenticaiton',
+    //   title: 'Sample Pages',
+    //   type: 'group',
+    //   icon: 'icon-navigation',
+    //   children: [
+    //     {
+    //       id: 'register',
+    //       title: 'Register',
+    //       type: 'item',
+    //       icon: 'material-icons-two-tone',
+    //       iconname: 'home',
+    //       url: '/register'
 
-        }
-      ]
-    },
+    //     }
+    //   ]
+    // },
     {
-      id: 'tools',
-      title: 'tools',
+      id: 'assets',
+      title: 'asset manager',
       type: 'group',
       icon: 'icon-navigation',
       children: [
@@ -52,7 +52,7 @@ const menuItems = {
           title: 'Add New Asset',
           type: 'item',
           icon: 'material-icons-two-tone',
-          iconname: 'home',
+          iconname: 'add_box',
           url: '/add-asset'
 
         },
@@ -61,7 +61,7 @@ const menuItems = {
           title: 'All Asset',
           type: 'item',
           icon: 'material-icons-two-tone',
-          iconname: 'home',
+          iconname: 'precision_manufacturing',
           url: '/all-asset'
 
         },
@@ -79,7 +79,7 @@ const menuItems = {
           title: 'Create Analysis Report',
           type: 'item',
           icon: 'material-icons-two-tone',
-          iconname: 'home',
+          iconname: 'note_add',
           url: '/add-A-R'
 
         },
@@ -88,7 +88,7 @@ const menuItems = {
           title: 'All Oil Analysis Report',
           type: 'item',
           icon: 'material-icons-two-tone',
-          iconname: 'home',
+          iconname: 'snippet_folder',
           url: '/all-submit-asset'
         },
 
@@ -101,31 +101,40 @@ const menuItems = {
       type: 'group',
       icon: 'icon-navigation',
       children: [
-        {
-          id: 'add-setup',
-          title: 'Add Setup',
-          type: 'item',
-          icon: 'material-icons-two-tone',
-          iconname: 'home',
-          url: '/add-setup'
-        },
+        // {
+        //   id: 'add-setup',
+        //   title: 'Add Setup',
+        //   type: 'item',
+        //   icon: 'material-icons-two-tone',
+        //   iconname: 'home',
+        //   url: '/add-setup'
+        // },
         {
           id: 'all-setup',
-          title: 'All Asset Option Setup',
+          title: 'Asset Option Setup',
           type: 'item',
           icon: 'material-icons-two-tone',
-          iconname: 'home',
+          iconname: 'tune',
           url: '/all-option-setup'
         },
         {
-          id: 'add-trivector-setup',
-          title: 'Add Trivector Setup',
+          id: 'register',
+          title: 'Registration',
           type: 'item',
           icon: 'material-icons-two-tone',
-          iconname: 'home',
-          url: '/add-trivector-setup'
+          iconname: 'supervisor_account',
+          url: '/register'
 
         }
+        // {
+        //   id: 'add-trivector-setup',
+        //   title: 'Add Trivector Setup',
+        //   type: 'item',
+        //   icon: 'material-icons-two-tone',
+        //   iconname: 'home',
+        //   url: '/add-trivector-setup'
+
+        // }
       ]
     },
     {

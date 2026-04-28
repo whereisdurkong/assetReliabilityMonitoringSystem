@@ -1,8 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Form, Container, Row, Col, Button, Badge } from 'react-bootstrap';
+import { Form, Container, Row, Col, Button } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Loading from '../../components/personalComponents/loading';
 import AlertModal from '../../components/personalComponents/alertModal';
+import {
+    FiPlus, FiTrash2, FiSave, FiCalendar, FiMapPin, FiTag,
+    FiBox, FiClipboard, FiCpu, FiGrid, FiArrowRight, FiArrowLeft,
+    FiCheckCircle, FiAlertCircle, FiInfo, FiSliders, FiZap, FiDatabase, FiSettings
+} from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import axios from 'axios';
 import config from 'config';
@@ -16,20 +22,18 @@ export default function AddAsset() {
         assetType: '',
         location: '',
         category: '',
-        trivector: '', // Added trivector field
+        trivector: '',
         commissioningDate: '',
         notes: '',
-        hasComponents: '0'
+        hasComponents: '1'
     });
 
-    // Components array to store multiple components
     const [components, setComponents] = useState([]);
     const [currentComponent, setCurrentComponent] = useState({
         componentType: '',
         componentName: ''
     });
 
-    // Alert state
     const [showAlert, setShowAlert] = useState(false);
     const [alertConfig, setAlertConfig] = useState({
         type: 'success',
@@ -39,30 +43,26 @@ export default function AddAsset() {
 
     const [isLoading, setIsLoading] = useState(false);
     const [locationOptions, setLocationOptions] = useState([]);
-
-    // Store the full API data for filtering
     const [masterData, setMasterData] = useState([]);
-
-    // State for filtered options
     const [assetTypeOptions, setAssetTypeOptions] = useState([]);
     const [categoryOptions, setCategoryOptions] = useState([]);
     const [componentTypeOptions, setComponentTypeOptions] = useState([]);
+    const [activeSection, setActiveSection] = useState('basic');
+    const [isFormValid, setIsFormValid] = useState({});
 
-    // Trivector options
     const trivectorOptions = [
-        { label: 'Rotating Machine', value: 'rotating-machine' },
-        { label: 'Stationary Engine', value: 'stationary-engine' },
-        { label: 'Mobile Engine', value: 'mobile-engine' }
+        { label: 'Rotating Machine', value: 'rotating-machine', color: '#ffbf5e' },
+        { label: 'Stationary Engine', value: 'stationary-engine', color: '#4ECDC4' },
+        { label: 'Mobile Engine', value: 'mobile-engine', color: '#45B7D1' }
     ];
-    // Fetch location options from API
+
     useEffect(() => {
         const fetchLocationOptions = async () => {
             try {
                 const res = await axios.get(`${config.baseApi}/assetsAnalysis/get-all-options-master`);
                 const data = res.data || [];
-                setMasterData(data); // Store all data
+                setMasterData(data);
 
-                // Collect all unique location options
                 const allLocations = [];
                 data.forEach(item => {
                     if (item.option_asset_location) {
@@ -77,7 +77,6 @@ export default function AddAsset() {
                 });
 
                 setLocationOptions(allLocations);
-                console.log('Location options:', allLocations);
             } catch (error) {
                 console.error('Error fetching location options:', error);
             }
@@ -86,7 +85,6 @@ export default function AddAsset() {
         fetchLocationOptions();
     }, []);
 
-    // Filter options based on selected location
     useEffect(() => {
         if (!formData.location || masterData.length === 0) {
             setAssetTypeOptions([]);
@@ -95,7 +93,6 @@ export default function AddAsset() {
             return;
         }
 
-        // Find the data entry that contains the selected location
         const selectedLocationData = masterData.find(item => {
             if (item.option_asset_location) {
                 const locations = item.option_asset_location.split(',').map(loc => loc.trim());
@@ -105,7 +102,6 @@ export default function AddAsset() {
         });
 
         if (selectedLocationData) {
-            // Process asset types
             if (selectedLocationData.option_asset_type) {
                 const types = selectedLocationData.option_asset_type.split(',').map(type => type.trim());
                 setAssetTypeOptions(types);
@@ -113,7 +109,6 @@ export default function AddAsset() {
                 setAssetTypeOptions([]);
             }
 
-            // Process categories
             if (selectedLocationData.option_asset_category) {
                 const categories = selectedLocationData.option_asset_category.split(',').map(cat => cat.trim());
                 setCategoryOptions(categories);
@@ -121,28 +116,19 @@ export default function AddAsset() {
                 setCategoryOptions([]);
             }
 
-            // Process component types
             if (selectedLocationData.option_component_types) {
                 const compTypes = selectedLocationData.option_component_types.split('/').map(type => type.trim());
                 setComponentTypeOptions(compTypes);
-
-                console.log(compTypes)
             } else {
                 setComponentTypeOptions([]);
             }
-
-            console.log('Asset Types for selected location:', assetTypeOptions);
-            console.log('Categories for selected location:', categoryOptions);
-            console.log('Component Types for selected location:', componentTypeOptions);
         } else {
-            // No matching data found
             setAssetTypeOptions([]);
             setCategoryOptions([]);
             setComponentTypeOptions([]);
         }
     }, [formData.location, masterData]);
 
-    // Effect to set mill, mmeandworkshop, smed based on selected location
     useEffect(() => {
         const millLocations = [
             'mill_crushing_plant',
@@ -172,12 +158,11 @@ export default function AddAsset() {
         const isSMEDLocation = smedlocations.includes(formData.location);
         setSmed(isSMEDLocation);
 
-        // Reset asset type and category when location changes
         setFormData(prev => ({
             ...prev,
             assetType: '',
             category: '',
-            trivector: '' // Reset trivector when location changes
+            trivector: ''
         }));
     }, [formData.location]);
 
@@ -187,6 +172,11 @@ export default function AddAsset() {
             ...prev,
             [name]: value
         }));
+
+        // Real-time validation
+        if (value.trim()) {
+            setIsFormValid(prev => ({ ...prev, [name]: true }));
+        }
     };
 
     const handleComponentInputChange = (e) => {
@@ -198,7 +188,6 @@ export default function AddAsset() {
     };
 
     const handleAddComponent = () => {
-        // Validate component fields
         if (!currentComponent.componentType.trim()) {
             showAlertMessage('error', 'Empty Fields', 'Component Type is required');
             return;
@@ -208,25 +197,21 @@ export default function AddAsset() {
             return;
         }
 
-        // Add component to the list
         setComponents([...components, { ...currentComponent }]);
-
-        // Reset current component
         setCurrentComponent({
             componentType: '',
             componentName: ''
         });
 
-        showAlertMessage('success', 'Component Added', `${currentComponent.componentName} has been added`);
+        showAlertMessage('success', 'Component Added', `${currentComponent.componentName} has been added successfully!`);
     };
 
     const handleRemoveComponent = (index) => {
         const updatedComponents = components.filter((_, i) => i !== index);
         setComponents(updatedComponents);
-        showAlertMessage('info', 'Component Removed', 'Component has been removed');
+        showAlertMessage('info', 'Component Removed', 'Component has been removed from the list');
     };
 
-    // Function to show alert messages
     const showAlertMessage = (type, title, description) => {
         setAlertConfig({ type, title, description });
         setShowAlert(true);
@@ -234,41 +219,32 @@ export default function AddAsset() {
 
     const Validation = () => {
         if (!formData.assetName.trim()) {
-            showAlertMessage('error', 'Empty Fields', 'Asset Name is empty');
-            setIsLoading(false);
+            showAlertMessage('error', 'Empty Fields', 'Asset Name is required');
             return false;
         }
         if (!formData.assetType.trim()) {
-            showAlertMessage('error', 'Empty Fields', 'Asset Type is empty');
-            setIsLoading(false);
+            showAlertMessage('error', 'Empty Fields', 'Asset Type is required');
             return false;
         }
         if (!formData.location.trim()) {
-            showAlertMessage('error', 'Empty Fields', 'Asset Location is empty');
-            setIsLoading(false);
+            showAlertMessage('error', 'Empty Fields', 'Asset Location is required');
             return false;
         }
         if (!formData.category.trim()) {
-            showAlertMessage('error', 'Empty Fields', 'Asset Category is empty');
-            setIsLoading(false);
+            showAlertMessage('error', 'Empty Fields', 'Asset Category is required');
             return false;
         }
-        // Optional: Add validation for trivector if required
         if (!formData.trivector.trim()) {
-            showAlertMessage('error', 'Empty Fields', 'Trivector is required');
-            setIsLoading(false);
+            showAlertMessage('error', 'Empty Fields', 'Trivector selection is required');
             return false;
         }
         if (!formData.commissioningDate.trim()) {
-            showAlertMessage('error', 'Empty Fields', 'Asset Commissioning Date is empty');
-            setIsLoading(false);
+            showAlertMessage('error', 'Empty Fields', 'Commissioning Date is required');
             return false;
         }
 
-        // Validate that if hasComponents is '1', there must be at least one component
-        if (formData.hasComponents === '1' && components.length === 0) {
-            showAlertMessage('error', 'Validation Error', 'Please add at least one component');
-            setIsLoading(false);
+        if (components.length === 0) {
+            showAlertMessage('error', 'Validation Error', 'Please add at least one component to continue');
             return false;
         }
 
@@ -277,7 +253,6 @@ export default function AddAsset() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         setIsLoading(true);
 
         const empInfo = JSON.parse(localStorage.getItem("user"));
@@ -286,60 +261,87 @@ export default function AddAsset() {
             return;
         }
 
-        console.log('DATE COMMISIONING: ', formData.commissioningDate);
-        console.log('TRIVECTOR: ', formData.trivector); // Log trivector value
-        console.log('COMPONENTS: ', components);
-        console.log('HAS COMPONENTS: ', formData.hasComponents);
-
         try {
             await axios.post(`${config.baseApi}/assets/add-assets`, {
                 asset_name: formData.assetName,
                 asset_type: formData.assetType,
                 asset_location: formData.location,
                 asset_category: formData.category,
-                trivector: formData.trivector, // Include trivector in the request
+                trivector: formData.trivector,
                 date_commisioning: formData.commissioningDate,
                 asset_notes: formData.notes,
                 created_by: empInfo.user_name,
                 has_components: formData.hasComponents,
                 components: components
-            }).then((res) => {
-
-                // Show success message
-                showAlertMessage(
-                    'success',
-                    'Successful!',
-                    `Asset ${formData.assetName} was successfully created!`
-                );
-
-                setFormData({
-                    assetName: '',
-                    assetType: '',
-                    location: '',
-                    category: '',
-                    trivector: '', // Reset trivector
-                    commissioningDate: '',
-                    notes: '',
-                    hasComponents: '0'
-                });
-                setComponents([]);
-
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
             });
+
+            showAlertMessage(
+                'success',
+                'Asset Created Successfully!',
+                `${formData.assetName} has been registered in the system.`
+            );
+
+            setFormData({
+                assetName: '',
+                assetType: '',
+                location: '',
+                category: '',
+                trivector: '',
+                commissioningDate: '',
+                notes: '',
+                hasComponents: '1'
+            });
+            setComponents([]);
+            setActiveSection('basic');
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
         } catch (err) {
             console.log('Unable to submit!', err);
+            showAlertMessage('error', 'Submission Failed', 'There was an error creating the asset. Please try again.');
             setIsLoading(false);
         }
     };
 
-    // Helper function to format display names
     const formatDisplayName = (value) => {
         return value
             .split('_')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
+    };
+
+    const sections = [
+        { id: 'basic', label: 'Asset Profile', icon: FiBox, metric: 'Identification', color: '#3B82F6' },
+        { id: 'details', label: 'Classification', icon: FiTag, metric: 'Technical Data', color: '#10B981' },
+        { id: 'components', label: 'Components', icon: FiCpu, metric: `${components.length} Components`, color: '#8B5CF6' }
+    ];
+
+    const getAlertIcon = (type) => {
+        switch (type) {
+            case 'success': return <FiCheckCircle size={24} />;
+            case 'error': return <FiAlertCircle size={24} />;
+            default: return <FiInfo size={24} />;
+        }
+    };
+
+    // Progress calculation
+    const getProgress = () => {
+        let total = 0;
+        let filled = 0;
+        if (activeSection === 'basic') {
+            const fields = ['assetName', 'location', 'assetType', 'category'];
+            total = fields.length;
+            filled = fields.filter(f => formData[f].trim()).length;
+        } else if (activeSection === 'details') {
+            const fields = ['trivector', 'commissioningDate'];
+            total = fields.length;
+            filled = fields.filter(f => formData[f].trim()).length;
+        } else {
+            total = 1;
+            filled = components.length > 0 ? 1 : 0;
+        }
+        return (filled / total) * 100;
     };
 
     return (
@@ -349,36 +351,15 @@ export default function AddAsset() {
             padding: '40px',
             position: 'relative',
             overflow: 'hidden',
-            paddingTop: '100px'
+
         }}>
-            <Loading show={isLoading} />
-
-            {/* Alert Modal */}
-            {showAlert && (
-                <div style={{
-                    position: 'fixed',
-                    top: '20px',
-                    right: '20px',
-                    zIndex: 9999
-                }}>
-                    <AlertModal
-                        type={alertConfig.type}
-                        title={alertConfig.title}
-                        description={alertConfig.description}
-                        onClose={() => setShowAlert(false)}
-                        autoClose={5000}
-                    />
-                </div>
-            )}
-
-            {/* Animated background elements */}
+            {/* Animated background elements - retained */}
             <div style={{
                 position: 'absolute',
                 width: '600px',
                 height: '600px',
                 borderRadius: '50%',
-                background: 'rgb(255, 255, 255)',
-                opacity: '0.05',
+                background: 'rgba(255, 255, 255, 0.05)',
                 top: '-200px',
                 right: '-200px',
                 animation: 'float 25s infinite ease-in-out',
@@ -389,8 +370,7 @@ export default function AddAsset() {
                 width: '400px',
                 height: '400px',
                 borderRadius: '50%',
-                background: 'rgb(255, 255, 255)',
-                opacity: '0.05',
+                background: 'rgba(255, 255, 255, 0.05)',
                 bottom: '-150px',
                 left: '-150px',
                 animation: 'float 20s infinite ease-in-out reverse',
@@ -401,664 +381,834 @@ export default function AddAsset() {
                 width: '300px',
                 height: '300px',
                 borderRadius: '50%',
-                background: 'rgb(255, 255, 255)',
-                opacity: '0.03',
+                background: 'rgba(255, 255, 255, 0.03)',
                 top: '50%',
                 left: '20%',
                 animation: 'float 18s infinite ease-in-out',
                 zIndex: 1
             }} />
 
-            <Container fluid style={{ maxWidth: '1600px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
-                <div style={{
-                    maxWidth: '1400px',
-                    margin: '0 auto'
-                }}>
-                    {/* Header */}
-                    <div style={{
-                        marginBottom: '20px',
-                        textAlign: 'start'
-                    }}>
-                        <div style={{ marginBottom: '15px' }}>
-                            <h1 style={{
-                                fontSize: '3.5rem',
-                                fontWeight: '800',
-                                color: '#EAB56F',
-                                marginBottom: '10px',
-                                letterSpacing: '-0.5px',
-                                textShadow: '0 4px 20px rgba(234, 181, 111, 0.2)'
-                            }}>Add New Asset</h1>
-                            <p style={{
-                                fontSize: '1.2rem',
-                                color: '#F9982F',
-                                opacity: '0.9',
-                                fontWeight: '400',
-                                maxWidth: '600px',
-                                margin: '0'
-                            }}>Fill in the details below to register a new asset in the system</p>
-                        </div>
-                    </div>
+            <Loading show={isLoading} />
 
-                    <Form onSubmit={handleSubmit}>
-                        <div style={{
-                            background: '#f1ddc2',
-                            borderRadius: '24px',
-                            padding: '40px',
-                            border: '1px solid rgba(227, 114, 57, 0.2)',
-                            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)'
-                        }}>
-                            <Row style={{ marginBottom: '30px' }}>
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="assetName">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Asset Name <span style={{ color: '#E37239' }}>*</span></Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            name="assetName"
-                                            value={formData.assetName}
-                                            onChange={handleInputChange}
-                                            placeholder="Enter asset name (e.g., Excavator, Conveyor Belt)"
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="location">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Location <span style={{ color: '#E37239' }}>*</span></Form.Label>
-                                        <Form.Select
-                                            name="location"
-                                            value={formData.location}
-                                            onChange={handleInputChange}
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                cursor: 'pointer',
-                                                appearance: 'none',
-                                                backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23E37239' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`,
-                                                backgroundRepeat: 'no-repeat',
-                                                backgroundPosition: 'right 20px center',
-                                                backgroundSize: '16px',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        >
-                                            <option value="" style={{ backgroundColor: '#fff', color: '#171C2D' }}>Select location</option>
-                                            {/* Dynamically render options from API */}
-                                            {locationOptions.map((locationValue, index) => (
-                                                <option
-                                                    key={index}
-                                                    value={locationValue}
-                                                    style={{ backgroundColor: '#fff', color: '#171C2D' }}
-                                                >
-                                                    {formatDisplayName(locationValue)}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
+            <AnimatePresence>
+                {showAlert && (
+                    <motion.div
+                        initial={{ opacity: 0, x: 100 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 100 }}
+                        style={{
+                            position: 'fixed',
+                            top: '20px',
+                            right: '20px',
+                            zIndex: 9999,
+                            maxWidth: '400px'
+                        }}
+                    >
+                        <AlertModal
+                            type={alertConfig.type}
+                            title={alertConfig.title}
+                            description={alertConfig.description}
+                            onClose={() => setShowAlert(false)}
+                            autoClose={5000}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-                            <Row style={{ marginBottom: '30px' }}>
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="assetType">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Asset Type <span style={{ color: '#E37239' }}>*</span></Form.Label>
-                                        <Form.Select
-                                            name="assetType"
-                                            value={formData.assetType}
-                                            onChange={handleInputChange}
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                cursor: 'pointer',
-                                                appearance: 'none',
-                                                backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23E37239' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`,
-                                                backgroundRepeat: 'no-repeat',
-                                                backgroundPosition: 'right 20px center',
-                                                backgroundSize: '16px',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            disabled={!formData.location}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        >
-                                            <option value="" style={{ backgroundColor: '#fff', color: '#171C2D' }}>
-                                                {!formData.location ? 'Please select a location first' : 'Select asset type'}
-                                            </option>
-                                            {assetTypeOptions.map((type, index) => (
-                                                <option
-                                                    key={index}
-                                                    value={type}
-                                                    style={{ backgroundColor: '#fff', color: '#171C2D' }}
-                                                >
-                                                    {formatDisplayName(type)}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="category">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Category <span style={{ color: '#E37239' }}>*</span></Form.Label>
-                                        <Form.Select
-                                            name="category"
-                                            value={formData.category}
-                                            onChange={handleInputChange}
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                cursor: 'pointer',
-                                                appearance: 'none',
-                                                backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23E37239' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`,
-                                                backgroundRepeat: 'no-repeat',
-                                                backgroundPosition: 'right 20px center',
-                                                backgroundSize: '16px',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            disabled={!formData.location}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        >
-                                            <option value="" style={{ backgroundColor: '#fff', color: '#171C2D' }}>
-                                                {!formData.location ? 'Please select a location first' : 'Select category'}
-                                            </option>
-                                            {categoryOptions.map((category, index) => (
-                                                <option
-                                                    key={index}
-                                                    value={category}
-                                                    style={{ backgroundColor: '#fff', color: '#171C2D' }}
-                                                >
-                                                    {formatDisplayName(category)}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            {/* New Row for Trivector */}
-                            <Row style={{ marginBottom: '30px' }}>
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="trivector">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Trivector</Form.Label>
-                                        <Form.Select
-                                            name="trivector"
-                                            value={formData.trivector}
-                                            onChange={handleInputChange}
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                cursor: 'pointer',
-                                                appearance: 'none',
-                                                backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23E37239' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`,
-                                                backgroundRepeat: 'no-repeat',
-                                                backgroundPosition: 'right 20px center',
-                                                backgroundSize: '16px',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        >
-                                            <option value="">Select trivector type</option>
-                                            {trivectorOptions.map((option, index) => (
-                                                <option key={index} value={option.value}>
-                                                    {option.label}
-                                                </option>
-                                            ))}
-                                        </Form.Select>
-                                    </Form.Group>
-                                </Col>
-
-                                <Col lg={6}>
-                                    <Form.Group className="mb-1" controlId="commissioningDate">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Date of Commissioning <span style={{ color: '#E37239' }}>*</span></Form.Label>
-                                        <Form.Control
-                                            type="date"
-                                            name="commissioningDate"
-                                            value={formData.commissioningDate}
-                                            onChange={handleInputChange}
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            <Row style={{ marginBottom: '30px' }}>
-                                <Col lg={12}>
-                                    <Form.Group className="mb-1" controlId="notes">
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block'
-                                        }}>Additional Notes</Form.Label>
-                                        <Form.Control
-                                            as="textarea"
-                                            rows={1}
-                                            name="notes"
-                                            value={formData.notes}
-                                            onChange={handleInputChange}
-                                            placeholder="Enter any additional notes, specifications, or comments..."
-                                            style={{
-                                                backgroundColor: '#fff',
-                                                border: '2px solid #e9ecef',
-                                                borderRadius: '12px',
-                                                padding: '16px 20px',
-                                                fontSize: '1rem',
-                                                color: '#171C2D',
-                                                width: '100%',
-                                                outline: 'none',
-                                                resize: 'vertical',
-                                                minHeight: '20px',
-                                                transition: 'all 0.3s ease'
-                                            }}
-                                            onFocus={(e) => {
-                                                e.target.style.borderColor = '#E37239';
-                                            }}
-                                            onBlur={(e) => {
-                                                e.target.style.borderColor = '#e9ecef';
-                                            }}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            </Row>
-
-                            <Row style={{ marginBottom: '30px' }}>
-                                <Form.Group className="mb-1">
-                                    <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'flex-start',
-                                        gap: '15px'
+            <Container fluid style={{ position: 'relative', zIndex: 2, padding: '40px' }}>
+                <motion.div
+                    initial={{ opacity: 0, y: -50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    style={{ maxWidth: '1200px', margin: '0 auto' }}
+                >
+                    {/* Productivity Header with Stats */}
+                    <motion.div
+                        style={{ marginBottom: '40px' }}
+                        initial={{ scale: 0.9 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.5 }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
+                            <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                    <FiZap size={32} color="#EAB56F" />
+                                    <h1 style={{
+                                        fontSize: '2.5rem',
+                                        fontWeight: '700',
+                                        color: '#EAB56F',
+                                        textShadow: '0 4px 20px rgba(234, 181, 111, 0.2)',
+                                        margin: 0,
+                                        letterSpacing: '-0.5px'
                                     }}>
-                                        <Form.Label style={{
-                                            fontWeight: '600',
-                                            fontSize: '0.9rem',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.5px',
-                                            color: '#254252',
-                                            display: 'block',
-                                            marginBottom: 0
-                                        }}>
-                                            Components <span style={{ color: '#E37239' }}>*</span>
-                                        </Form.Label>
+                                        Asset Registration
+                                    </h1>
+                                </div>
+                                <p style={{
+                                    fontSize: '1rem',
+                                    color: 'rgba(255,255,255,0.7)',
+                                    margin: 0,
+                                    paddingLeft: '44px'
+                                }}>
+                                    Complete the form below to register new equipment
+                                </p>
+                            </div>
 
-                                        {/* Slide Toggle Switch */}
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '12px',
-                                                cursor: 'pointer'
-                                            }}
-                                            onClick={() => {
-                                                const newValue = formData.hasComponents === '1' ? '0' : '1';
-                                                setFormData({ ...formData, hasComponents: newValue });
-                                                if (newValue === '0') {
-                                                    setComponents([]);
-                                                }
-                                            }}
-                                        >
-                                            <div style={{
-                                                width: '60px',
-                                                height: '30px',
-                                                background: formData.hasComponents === '1'
-                                                    ? 'linear-gradient(45deg, #28a745, #20c997)'
-                                                    : '#dc3545',
-                                                borderRadius: '30px',
-                                                position: 'relative',
-                                                transition: 'all 0.3s ease',
-                                                boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
-                                            }}>
-                                                <div style={{
-                                                    width: '26px',
-                                                    height: '26px',
-                                                    background: 'white',
-                                                    borderRadius: '50%',
-                                                    position: 'absolute',
-                                                    top: '2px',
-                                                    left: formData.hasComponents === '1' ? '32px' : '2px',
-                                                    transition: 'all 0.3s ease',
-                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
-                                                }} />
-                                            </div>
-                                            <span style={{
-                                                fontSize: '0.9rem',
-                                                fontWeight: '600',
-                                                color: formData.hasComponents === '1' ? '#28a745' : '#dc3545',
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.5px'
-                                            }}>
-                                                {formData.hasComponents === '1' ? 'YES' : 'NO'}
-                                            </span>
-                                        </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Productive Progress Indicator */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        style={{
+                            background: 'rgba(0,0,0,0.3)',
+                            backdropFilter: 'blur(10px)',
+                            borderRadius: '20px',
+                            padding: '20px 30px',
+                            marginBottom: '30px',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                        }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
+                            {sections.map((section, idx) => (
+                                <motion.button
+                                    key={section.id}
+                                    whileHover={{ y: -2 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setActiveSection(section.id)}
+                                    style={{
+                                        flex: 1,
+                                        background: activeSection === section.id
+                                            ? `linear-gradient(135deg, ${section.color}, ${section.color}CC)`
+                                            : 'rgba(255,255,255,0.05)',
+                                        border: activeSection === section.id
+                                            ? `1px solid ${section.color}`
+                                            : '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '14px',
+                                        padding: '12px 16px',
+                                        color: 'white',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        textAlign: 'left'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                                        <section.icon size={18} color={activeSection === section.id ? '#EAB56F' : 'rgba(255,255,255,0.5)'} />
+                                        <span style={{ fontWeight: '600', fontSize: '0.9rem' }}>{section.label}</span>
                                     </div>
-                                </Form.Group>
-                            </Row>
+                                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>{section.metric}</div>
+                                </motion.button>
+                            ))}
+                        </div>
+                        <div style={{ marginTop: '10px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>
+                                <span>Section Completion</span>
+                                <span>{Math.round(getProgress())}%</span>
+                            </div>
+                            <div style={{
+                                height: '4px',
+                                background: 'rgba(255,255,255,0.1)',
+                                borderRadius: '4px',
+                                overflow: 'hidden'
+                            }}>
+                                <motion.div
+                                    animate={{ width: `${getProgress()}%` }}
+                                    transition={{ duration: 0.3 }}
+                                    style={{
+                                        height: '100%',
+                                        background: `linear-gradient(90deg, #EAB56F, #F9982F)`,
+                                        borderRadius: '4px'
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </motion.div>
 
-                            {/* Component Fields - Show only when toggle is YES */}
-                            {formData.hasComponents === '1' && (
-                                <>
-                                    <Row style={{ marginBottom: '20px' }}>
-                                        <Col lg={5}>
-                                            <Form.Group>
-                                                <Form.Label style={{
-                                                    fontWeight: '600',
-                                                    fontSize: '0.9rem',
-                                                    textTransform: 'uppercase',
-                                                    letterSpacing: '0.5px',
-                                                    color: '#254252',
-                                                    display: 'block'
-                                                }}>Component Type</Form.Label>
-                                                <Form.Select
-                                                    name="componentType"
-                                                    value={currentComponent.componentType}
-                                                    onChange={handleComponentInputChange}
-                                                    style={{
-                                                        backgroundColor: '#fff',
-                                                        border: '2px solid #e9ecef',
-                                                        borderRadius: '12px',
-                                                        padding: '16px 20px',
-                                                        fontSize: '1rem',
-                                                        color: '#171C2D',
-                                                        width: '100%',
-                                                        outline: 'none',
-                                                        cursor: 'pointer',
-                                                        appearance: 'none',
-                                                        backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23E37239' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>")`,
-                                                        backgroundRepeat: 'no-repeat',
-                                                        backgroundPosition: 'right 20px center',
-                                                        backgroundSize: '16px',
-                                                        transition: 'all 0.3s ease'
-                                                    }}
-                                                    disabled={!formData.location}
-                                                    onFocus={(e) => {
-                                                        e.target.style.borderColor = '#E37239';
-                                                    }}
-                                                    onBlur={(e) => {
-                                                        e.target.style.borderColor = '#e9ecef';
-                                                    }}
-                                                >
-                                                    <option value="" style={{ backgroundColor: '#fff', color: '#171C2D' }}>
-                                                        {!formData.location ? 'Please select a location first' : 'Select component type'}
-                                                    </option>
-                                                    {componentTypeOptions.map((compType, index) => (
-                                                        <option
-                                                            key={index}
-                                                            value={compType}
-                                                            style={{ backgroundColor: '#fff', color: '#171C2D' }}
-                                                        >
-                                                            {formatDisplayName(compType)}
-                                                        </option>
-                                                    ))}
-                                                </Form.Select>
-                                            </Form.Group>
-                                        </Col>
-                                        <Col lg={5}>
-                                            <Form.Group>
-                                                <Form.Label style={{
-                                                    fontWeight: '600',
-                                                    fontSize: '0.9rem',
-                                                    textTransform: 'uppercase',
-                                                    letterSpacing: '0.5px',
-                                                    color: '#254252',
-                                                    display: 'block'
-                                                }}>Component Name</Form.Label>
-                                                <Form.Control
-                                                    type="text"
-                                                    name="componentName"
-                                                    value={currentComponent.componentName}
-                                                    onChange={handleComponentInputChange}
-                                                    placeholder="Enter component name (e.g., Hydraulic Motor A1)"
-                                                    style={{
-                                                        backgroundColor: '#fff',
-                                                        border: '2px solid #e9ecef',
-                                                        borderRadius: '12px',
-                                                        padding: '16px 20px',
-                                                        fontSize: '1rem',
-                                                        color: '#171C2D',
-                                                        width: '100%',
-                                                        outline: 'none',
-                                                        transition: 'all 0.3s ease'
-                                                    }}
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                        <Col lg={2} style={{ display: 'flex', alignItems: 'flex-end' }}>
-                                            <Button
-                                                onClick={handleAddComponent}
-                                                style={{
-                                                    background: 'linear-gradient(45deg, #EAB56F, #F9982F)',
-                                                    border: 'none',
-                                                    borderRadius: '12px',
-                                                    padding: '16px 20px',
-                                                    fontSize: '1rem',
-                                                    fontWeight: '600',
-                                                    color: '#fff',
-                                                    cursor: 'pointer',
-                                                    width: '100%',
-                                                    transition: 'all 0.3s ease'
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.target.style.transform = 'scale(1.02)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.target.style.transform = 'scale(1)';
-                                                }}
-                                            >
-                                                Add Component
-                                            </Button>
-                                        </Col>
-                                    </Row>
+                    {/* Main Form Card - Cleaner, more structured */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        style={{
+                            background: '#FFFFFF',
+                            borderRadius: '24px',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                            overflow: 'hidden'
+                        }}
+                    >
+                        <div style={{
+                            padding: '24px 32px',
+                            borderBottom: '1px solid #E2E8F0',
+                            background: '#F8FAFC'
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                {activeSection === 'basic' && <FiBox size={24} color="#3B82F6" />}
+                                {activeSection === 'details' && <FiTag size={24} color="#10B981" />}
+                                {activeSection === 'components' && <FiCpu size={24} color="#8B5CF6" />}
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '600', color: '#1E293B' }}>
+                                        {activeSection === 'basic' && 'Asset Identification'}
+                                        {activeSection === 'details' && 'Technical Classification'}
+                                        {activeSection === 'components' && 'Component'}
+                                    </h3>
+                                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748B' }}>
+                                        {activeSection === 'basic' && 'Enter the core identifying information for the asset'}
+                                        {activeSection === 'details' && 'Define technical parameters and commissioning data'}
+                                        {activeSection === 'components' && 'Define the components that make up this asset'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
 
-                                    {/* Display Added Components */}
-                                    {components.length > 0 && (
-                                        <Row style={{ marginTop: '20px' }}>
-                                            <Col lg={12}>
-                                                <div style={{
-                                                    background: 'rgba(37, 66, 82, 0.1)',
-                                                    borderRadius: '12px',
-                                                    padding: '20px',
-                                                    border: '1px solid rgba(227, 114, 57, 0.2)'
-                                                }}>
-                                                    <h4 style={{
-                                                        fontSize: '1rem',
-                                                        fontWeight: '600',
-                                                        color: '#254252',
-                                                        marginBottom: '15px',
-                                                        textTransform: 'uppercase',
-                                                        letterSpacing: '0.5px'
-                                                    }}>
-                                                        Added Components ({components.length})
-                                                    </h4>
-                                                    {components.map((comp, index) => (
-                                                        <div key={index} style={{
-                                                            display: 'flex',
-                                                            justifyContent: 'space-between',
-                                                            alignItems: 'center',
-                                                            background: '#fff',
-                                                            padding: '12px 15px',
-                                                            marginBottom: '10px',
-                                                            borderRadius: '8px',
-                                                            border: '1px solid #e9ecef'
-                                                        }}>
-                                                            <div>
-                                                                <strong style={{ color: '#E37239' }}>{formatDisplayName(comp.componentType)}</strong>
-                                                                <span style={{ margin: '0 10px', color: '#254252' }}>|</span>
-                                                                <span style={{ color: '#254252' }}>{comp.componentName}</span>
-                                                            </div>
-                                                            <Button
-                                                                variant="link"
-                                                                onClick={() => handleRemoveComponent(index)}
+                        <div style={{ padding: '32px' }}>
+                            <Form onSubmit={handleSubmit}>
+                                <AnimatePresence mode="wait">
+                                    {activeSection === 'basic' && (
+                                        <motion.div
+                                            key="basic"
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: 20 }}
+                                            transition={{ duration: 0.3 }}
+                                        >
+                                            <Row>
+                                                <Col lg={6}>
+                                                    <div style={{ marginBottom: '24px' }}>
+                                                        <Form.Group>
+                                                            <Form.Label style={{
+                                                                fontWeight: '500',
+                                                                fontSize: '0.85rem',
+                                                                color: '#334155',
+                                                                marginBottom: '8px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+
+                                                            }}>
+                                                                <FiBox size={14} />
+                                                                Asset Name <span style={{ color: '#EF4444' }}>*</span>
+                                                            </Form.Label>
+                                                            <Form.Control
+                                                                type="text"
+                                                                name="assetName"
+                                                                value={formData.assetName}
+                                                                onChange={handleInputChange}
+                                                                placeholder="e.g., Main Conveyor Belt, Hydraulic Excavator"
                                                                 style={{
-                                                                    color: '#dc3545',
-                                                                    textDecoration: 'none',
-                                                                    padding: '5px 10px',
+                                                                    border: '2px solid #E2E8F0',
+                                                                    borderRadius: '10px',
+                                                                    padding: '12px 16px',
+                                                                    fontSize: '0.95rem',
+                                                                    transition: 'all 0.2s'
+                                                                }}
+                                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                                            />
+                                                        </Form.Group>
+                                                    </div>
+                                                </Col>
+                                                <Col lg={6}>
+                                                    <div style={{ marginBottom: '24px' }}>
+                                                        <Form.Group>
+                                                            <Form.Label style={{
+                                                                fontWeight: '500',
+                                                                color: '#334155',
+                                                                marginBottom: '8px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+                                                                fontSize: '0.85rem'
+                                                            }}>
+                                                                <FiMapPin size={14} />
+                                                                Location <span style={{ color: '#EF4444' }}>*</span>
+                                                            </Form.Label>
+                                                            <Form.Select
+                                                                name="location"
+                                                                value={formData.location}
+                                                                onChange={handleInputChange}
+                                                                style={{
+                                                                    border: '2px solid #E2E8F0',
+                                                                    borderRadius: '10px',
+                                                                    padding: '12px 16px',
+                                                                    fontSize: '0.95rem',
+                                                                    cursor: 'pointer'
+                                                                }}
+                                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                                            >
+                                                                <option value="">Select location</option>
+                                                                {locationOptions.map((locationValue, index) => (
+                                                                    <option key={index} value={locationValue}>
+                                                                        {formatDisplayName(locationValue)}
+                                                                    </option>
+                                                                ))}
+                                                            </Form.Select>
+                                                        </Form.Group>
+                                                    </div>
+                                                </Col>
+                                            </Row>
+
+                                            <Row>
+                                                <Col lg={6}>
+                                                    <div style={{ marginBottom: '24px' }}>
+                                                        <Form.Group>
+                                                            <Form.Label style={{
+                                                                fontWeight: '500',
+                                                                color: '#334155',
+                                                                marginBottom: '8px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+                                                                fontSize: '0.85rem'
+                                                            }}>
+                                                                <FiSliders size={14} />
+                                                                Asset Type <span style={{ color: '#EF4444' }}>*</span>
+                                                            </Form.Label>
+                                                            <Form.Select
+                                                                name="assetType"
+                                                                value={formData.assetType}
+                                                                onChange={handleInputChange}
+                                                                disabled={!formData.location}
+                                                                style={{
+                                                                    border: '2px solid #E2E8F0',
+                                                                    borderRadius: '10px',
+                                                                    padding: '12px 16px',
+                                                                    fontSize: '0.95rem',
+                                                                    cursor: formData.location ? 'pointer' : 'not-allowed',
+                                                                    background: !formData.location ? '#F1F5F9' : 'white'
+                                                                }}
+                                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                                            >
+                                                                <option value="">
+                                                                    {!formData.location ? 'Select location first' : 'Select asset type'}
+                                                                </option>
+                                                                {assetTypeOptions.map((type, index) => (
+                                                                    <option key={index} value={type}>
+                                                                        {formatDisplayName(type)}
+                                                                    </option>
+                                                                ))}
+                                                            </Form.Select>
+                                                        </Form.Group>
+                                                    </div>
+                                                </Col>
+                                                <Col lg={6}>
+                                                    <div style={{ marginBottom: '24px' }}>
+                                                        <Form.Group>
+                                                            <Form.Label style={{
+                                                                fontWeight: '500',
+                                                                color: '#334155',
+                                                                marginBottom: '8px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+                                                                fontSize: '0.85rem'
+                                                            }}>
+                                                                <FiGrid size={14} />
+                                                                Category <span style={{ color: '#EF4444' }}>*</span>
+                                                            </Form.Label>
+                                                            <Form.Select
+                                                                name="category"
+                                                                value={formData.category}
+                                                                onChange={handleInputChange}
+                                                                disabled={!formData.location}
+                                                                style={{
+                                                                    border: '2px solid #E2E8F0',
+                                                                    borderRadius: '10px',
+                                                                    padding: '12px 16px',
+                                                                    fontSize: '0.95rem',
+                                                                    cursor: formData.location ? 'pointer' : 'not-allowed',
+                                                                    background: !formData.location ? '#F1F5F9' : 'white'
+                                                                }}
+                                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                                            >
+                                                                <option value="">
+                                                                    {!formData.location ? 'Select location first' : 'Select category'}
+                                                                </option>
+                                                                {categoryOptions.map((category, index) => (
+                                                                    <option key={index} value={category}>
+                                                                        {formatDisplayName(category)}
+                                                                    </option>
+                                                                ))}
+                                                            </Form.Select>
+                                                        </Form.Group>
+                                                    </div>
+                                                </Col>
+                                            </Row>
+
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', paddingTop: '8px', borderTop: '1px solid #E2E8F0' }}>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => setActiveSection('details')}
+                                                    type="button"
+                                                    style={{
+                                                        background: 'linear-gradient(135deg, #EAB56F, #F9982F)',
+                                                        border: 'none', borderRadius: '12px', padding: '14px 28px',
+                                                        fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                                                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                                        gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
+                                                        transition: 'all 0.2s ease',
+                                                    }}
+                                                    onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
+                                                    onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
+                                                >
+                                                    Next: Classification
+                                                    <FiArrowRight size={16} />
+                                                </motion.button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    {activeSection === 'details' && (
+                                        <motion.div
+                                            key="details"
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: 20 }}
+                                            transition={{ duration: 0.3 }}
+                                        >
+                                            <Row>
+                                                <Col lg={6}>
+                                                    <div style={{ marginBottom: '24px' }}>
+                                                        <Form.Group>
+                                                            <Form.Label style={{
+                                                                fontWeight: '500',
+                                                                color: '#334155',
+                                                                marginBottom: '8px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+                                                                fontSize: '0.85rem'
+                                                            }}>
+                                                                <FiZap size={14} />
+                                                                Trivector Classification <span style={{ color: '#EF4444' }}>*</span>
+                                                            </Form.Label>
+                                                            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                                                {trivectorOptions.map((option) => (
+                                                                    <div
+                                                                        key={option.value}
+                                                                        onClick={() => setFormData(prev => ({ ...prev, trivector: option.value }))}
+                                                                        style={{
+                                                                            flex: 1,
+                                                                            padding: '12px',
+                                                                            borderRadius: '10px',
+                                                                            border: formData.trivector === option.value
+                                                                                ? `2px solid ${option.color}`
+                                                                                : '1px solid #E2E8F0',
+                                                                            background: formData.trivector === option.value
+                                                                                ? `${option.color}10`
+                                                                                : 'white',
+                                                                            cursor: 'pointer',
+                                                                            textAlign: 'center',
+                                                                            transition: 'all 0.2s'
+                                                                        }}
+                                                                    >
+                                                                        <div style={{ fontWeight: '500', fontSize: '0.9rem', color: '#1E293B' }}>{option.label}</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </Form.Group>
+                                                    </div>
+                                                </Col>
+                                                <Col lg={6}>
+                                                    <div style={{ marginBottom: '24px' }}>
+                                                        <Form.Group>
+                                                            <Form.Label style={{
+                                                                fontWeight: '500',
+                                                                color: '#334155',
+                                                                marginBottom: '8px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+                                                                fontSize: '0.85rem'
+                                                            }}>
+                                                                <FiCalendar size={14} />
+                                                                Commissioning Date <span style={{ color: '#EF4444' }}>*</span>
+                                                            </Form.Label>
+                                                            <Form.Control
+                                                                type="date"
+                                                                name="commissioningDate"
+                                                                value={formData.commissioningDate}
+                                                                onChange={handleInputChange}
+                                                                style={{
+                                                                    border: '2px solid #E2E8F0',
+                                                                    borderRadius: '10px',
+                                                                    padding: '12px 16px',
+                                                                    fontSize: '0.95rem'
+                                                                }}
+                                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                                            />
+                                                        </Form.Group>
+                                                    </div>
+                                                </Col>
+                                            </Row>
+
+                                            <Row>
+                                                <Col lg={12}>
+                                                    <div style={{ marginBottom: '24px' }}>
+                                                        <Form.Group>
+                                                            <Form.Label style={{
+                                                                fontWeight: '500',
+                                                                color: '#334155',
+                                                                marginBottom: '8px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: '6px',
+                                                                fontSize: '0.85rem'
+                                                            }}>
+                                                                <FiClipboard size={14} />
+                                                                Technical Notes
+                                                            </Form.Label>
+                                                            <Form.Control
+                                                                as="textarea"
+                                                                rows={4}
+                                                                name="notes"
+                                                                value={formData.notes}
+                                                                onChange={handleInputChange}
+                                                                placeholder="Enter specifications, serial numbers, warranty info, or other technical details..."
+                                                                style={{
+                                                                    border: '2px solid #E2E8F0',
+                                                                    borderRadius: '10px',
+                                                                    padding: '12px 16px',
+                                                                    fontSize: '0.95rem',
+                                                                    resize: 'vertical'
+                                                                }}
+                                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                                            />
+                                                        </Form.Group>
+                                                    </div>
+                                                </Col>
+                                            </Row>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', paddingTop: '8px', borderTop: '1px solid #E2E8F0' }}>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => setActiveSection('basic')}
+                                                    type="button"
+                                                    style={{
+                                                        background: 'transparent',
+                                                        border: '1px solid #CBD5E1',
+                                                        borderRadius: '10px',
+                                                        padding: '12px 28px',
+                                                        color: '#64748B',
+                                                        fontWeight: '500',
+                                                        fontSize: '0.9rem',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onHoverStart={e => e.target.style.border = '2px solid #ffae00'}
+                                                    onHoverEnd={e => e.target.style.border = '1px solid #CBD5E1'}
+
+                                                >
+                                                    <FiArrowLeft size={16} />
+                                                    Back
+                                                </motion.button>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => setActiveSection('components')}
+                                                    type="button"
+                                                    style={{
+                                                        background: 'linear-gradient(135deg, #EAB56F, #F9982F)',
+                                                        border: 'none', borderRadius: '12px', padding: '14px 28px',
+                                                        fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                                                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                                        gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
+                                                        transition: 'all 0.2s ease',
+                                                    }}
+                                                    onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
+                                                    onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
+                                                >
+                                                    Next: Components
+                                                    <FiArrowRight size={16} />
+                                                </motion.button>
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    {activeSection === 'components' && (
+                                        <motion.div
+                                            key="components"
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: 20 }}
+                                            transition={{ duration: 0.3 }}
+                                        >
+                                            <div style={{ marginBottom: '28px' }}>
+                                                <div style={{
+                                                    background: '#F1F5F9',
+                                                    borderRadius: '12px',
+                                                    padding: '16px',
+                                                    marginBottom: '24px'
+                                                }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                        <FiDatabase size={20} color="#8B5CF6" />
+                                                        <div>
+                                                            <div style={{ fontWeight: '500', color: '#1E293B' }}>Component Types</div>
+                                                            <div style={{ fontSize: '0.8rem', color: '#64748B' }}>Each asset requires at least one component</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <Row style={{ marginBottom: '24px' }}>
+                                                    <Col lg={5}>
+                                                        <Form.Group>
+                                                            <Form.Label style={{ fontWeight: '500', color: '#334155', marginBottom: '6px', fontSize: '0.8rem' }}>
+                                                                Component Type <span style={{ color: '#EF4444' }}>*</span>
+                                                            </Form.Label>
+                                                            <Form.Select
+                                                                name="componentType"
+                                                                value={currentComponent.componentType}
+                                                                onChange={handleComponentInputChange}
+                                                                disabled={!formData.location}
+                                                                style={{
+                                                                    border: '2px solid #E2E8F0',
+                                                                    borderRadius: '10px',
+                                                                    padding: '10px 14px',
                                                                     fontSize: '0.9rem'
                                                                 }}
+                                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
                                                             >
-                                                                Remove
-                                                            </Button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </Col>
-                                        </Row>
-                                    )}
-                                </>
-                            )}
+                                                                <option value="">
+                                                                    {!formData.location ? 'Select location first' : 'Select type'}
+                                                                </option>
+                                                                {componentTypeOptions.map((compType, index) => (
+                                                                    <option key={index} value={compType}>
+                                                                        {formatDisplayName(compType)}
+                                                                    </option>
+                                                                ))}
+                                                            </Form.Select>
+                                                        </Form.Group>
+                                                    </Col>
+                                                    <Col lg={5}>
+                                                        <Form.Group>
+                                                            <Form.Label style={{ fontWeight: '500', color: '#334155', marginBottom: '6px', fontSize: '0.8rem' }}>
+                                                                Component Name <span style={{ color: '#EF4444' }}>*</span>
+                                                            </Form.Label>
+                                                            <Form.Control
+                                                                type="text"
+                                                                name="componentName"
+                                                                value={currentComponent.componentName}
+                                                                onChange={handleComponentInputChange}
+                                                                placeholder="e.g., Hydraulic Pump, Drive Motor"
+                                                                style={{
+                                                                    border: '2px solid #E2E8F0',
+                                                                    borderRadius: '10px',
+                                                                    padding: '10px 14px',
+                                                                    fontSize: '0.9rem'
+                                                                }}
+                                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                                            />
+                                                        </Form.Group>
+                                                    </Col>
+                                                    <Col lg={2} style={{ display: 'flex', alignItems: 'flex-end' }}>
+                                                        <motion.button
+                                                            whileHover={{ scale: 1.02 }}
+                                                            whileTap={{ scale: 0.98 }}
+                                                            onClick={handleAddComponent}
+                                                            type="button"
+                                                            style={{
+                                                                width: '100%',
+                                                                padding: '10px',
+                                                                background: '#8B5CF6',
+                                                                border: 'none',
+                                                                borderRadius: '10px',
+                                                                color: 'white',
+                                                                fontWeight: '500',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                gap: '6px',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.9rem'
+                                                            }}
+                                                        >
+                                                            <FiPlus size={14} />
+                                                            Add
+                                                        </motion.button>
+                                                    </Col>
+                                                </Row>
 
-                            {/* ADD BUTTON */}
-                            <Row style={{ marginTop: components.length > 0 ? '20px' : '0' }}>
-                                <Col lg={12} style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                    <Button
-                                        type="submit"
-                                        style={{
-                                            background: 'linear-gradient(45deg, #EAB56F, #F9982F, #E37239)',
-                                            border: 'none',
-                                            borderRadius: '16px',
-                                            padding: '18px 36px',
-                                            fontSize: '1.1rem',
-                                            fontWeight: '600',
-                                            letterSpacing: '0.5px',
-                                            color: '#fff',
-                                            cursor: 'pointer',
-                                            minWidth: '200px',
-                                            transition: 'all 0.3s ease',
-                                            boxShadow: '0 10px 20px rgba(227, 114, 57, 0.3)'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.target.style.transform = 'scale(1.02)';
-                                            e.target.style.boxShadow = '0 15px 35px -10px #E37239';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.target.style.transform = 'scale(1)';
-                                            e.target.style.boxShadow = '0 10px 30px -10px #E37239';
-                                        }}
-                                    >
-                                        Add Asset
-                                    </Button>
-                                </Col>
-                            </Row>
+                                                <AnimatePresence>
+                                                    {components.length > 0 ? (
+                                                        <motion.div
+                                                            initial={{ opacity: 0 }}
+                                                            animate={{ opacity: 1 }}
+                                                            style={{
+                                                                border: '1px solid #E2E8F0',
+                                                                borderRadius: '16px',
+                                                                overflow: 'hidden',
+                                                                marginBottom: '24px'
+                                                            }}
+                                                        >
+                                                            <div style={{
+                                                                background: '#F8FAFC',
+                                                                padding: '12px 16px',
+                                                                borderBottom: '1px solid #E2E8F0',
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center'
+                                                            }}>
+                                                                <span style={{ fontWeight: '500', fontSize: '0.85rem', color: '#1E293B' }}>
+                                                                    Component List ({components.length})
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                                                {components.map((comp, index) => (
+                                                                    <motion.div
+                                                                        key={index}
+                                                                        initial={{ opacity: 0 }}
+                                                                        animate={{ opacity: 1 }}
+                                                                        exit={{ opacity: 0 }}
+                                                                        style={{
+                                                                            display: 'flex',
+                                                                            justifyContent: 'space-between',
+                                                                            alignItems: 'center',
+                                                                            padding: '12px 16px',
+                                                                            borderBottom: '1px solid #F1F5F9',
+                                                                            background: 'white'
+                                                                        }}
+                                                                    >
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                                            <div style={{
+                                                                                width: '28px',
+                                                                                height: '28px',
+                                                                                background: '#F3E8FF',
+                                                                                borderRadius: '8px',
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center',
+                                                                                color: '#8B5CF6'
+                                                                            }}>
+                                                                                <FiSettings size={14} />
+                                                                            </div>
+                                                                            <div>
+                                                                                <div style={{ fontWeight: '500', fontSize: '0.9rem', color: '#1E293B' }}>
+                                                                                    {comp.componentName}
+                                                                                </div>
+                                                                                <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                                                                                    {formatDisplayName(comp.componentType)}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <motion.button
+                                                                            whileHover={{ scale: 1.1 }}
+                                                                            whileTap={{ scale: 0.9 }}
+                                                                            onClick={() => handleRemoveComponent(index)}
+                                                                            style={{
+                                                                                background: 'none',
+                                                                                border: 'none',
+                                                                                color: '#EF4444',
+                                                                                cursor: 'pointer',
+                                                                                padding: '8px'
+                                                                            }}
+                                                                        >
+                                                                            <FiTrash2 size={16} />
+                                                                        </motion.button>
+                                                                    </motion.div>
+                                                                ))}
+                                                            </div>
+                                                        </motion.div>
+                                                    ) : (
+                                                        <motion.div
+                                                            initial={{ opacity: 0 }}
+                                                            animate={{ opacity: 1 }}
+                                                            style={{
+                                                                textAlign: 'center',
+                                                                padding: '40px',
+                                                                background: '#F8FAFC',
+                                                                borderRadius: '16px',
+                                                                marginBottom: '24px',
+                                                                border: '1px dashed #CBD5E1'
+                                                            }}
+                                                        >
+                                                            <FiCpu size={40} style={{ marginBottom: '12px', opacity: 0.4, color: '#8B5CF6' }} />
+                                                            <p style={{ color: '#64748B', margin: 0, fontSize: '0.9rem' }}>No components added yet</p>
+                                                            <p style={{ color: '#94A3B8', fontSize: '0.8rem' }}>Add at least one component to complete registration</p>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
+
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #E2E8F0' }}>
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.02 }}
+                                                        whileTap={{ scale: 0.98 }}
+                                                        onClick={() => setActiveSection('details')}
+                                                        type="button"
+                                                        style={{
+                                                            background: 'transparent',
+                                                            border: '1px solid #CBD5E1',
+                                                            borderRadius: '10px',
+                                                            padding: '12px 28px',
+                                                            color: '#64748B',
+                                                            fontWeight: '500',
+                                                            fontSize: '0.9rem',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '8px',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                        onHoverStart={e => e.target.style.border = '2px solid #ffae00'}
+                                                        onHoverEnd={e => e.target.style.border = '1px solid #CBD5E1'}
+                                                    >
+                                                        <FiArrowLeft size={16} />
+                                                        Back
+                                                    </motion.button>
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.02 }}
+                                                        whileTap={{ scale: 0.98 }}
+                                                        type="submit"
+                                                        style={{
+                                                            background: 'linear-gradient(135deg, #EAB56F, #F9982F)',
+                                                            border: 'none', borderRadius: '12px', padding: '14px 28px',
+                                                            fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                                                            cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                                            gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
+                                                            transition: 'all 0.2s ease',
+                                                        }}
+                                                        onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
+                                                        onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
+                                                        disabled={components.length === 0}
+                                                    >
+                                                        <FiSave size={16} />
+                                                        Register Asset
+                                                    </motion.button>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </Form>
                         </div>
-                    </Form>
-                </div>
+                    </motion.div>
+
+                    {/* Productivity Tip */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                        style={{
+                            marginTop: '24px',
+                            textAlign: 'center',
+                            fontSize: '0.8rem',
+                            color: 'rgba(255,255,255,0.5)'
+                        }}
+                    >
+                        <FiZap size={12} style={{ display: 'inline', marginRight: '6px' }} />
+                        Tip: Complete all required fields marked with <span style={{ color: '#EF4444' }}>*</span> to ensure accurate asset tracking
+                    </motion.div>
+                </motion.div>
             </Container>
 
             <style>

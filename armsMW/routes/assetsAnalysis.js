@@ -1,9 +1,12 @@
 var express = require('express');
+const multer = require('multer');
 var bcrypt = require('bcrypt');
 const router = express.Router();
 var Sequelize = require('sequelize');
 const { DataTypes } = Sequelize;
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 
 var knex = require("knex")({
     client: 'mssql',
@@ -26,6 +29,35 @@ var db = new Sequelize(process.env.DATABASE, process.env.USER, process.env.PASSW
     port: parseInt(process.env.APP_SERVER_PORT),
 });
 
+const DIR = './documentation';
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        // Use absolute path
+        cb(null, DIR);
+    },
+    filename: (req, file, cb) => {
+        // Create unique filename with timestamp to avoid conflicts
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        const baseName = path.basename(file.originalname, ext);
+        cb(null, `${baseName}-${uniqueSuffix}${ext}`);
+    }
+});
+
+const upload = multer({
+    storage,
+    limits: { fileSize: 200 * 1024 * 1024 }, // 200 MB
+    fileFilter: (req, file, cb) => {
+        // Accept images and videos
+        if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only images and videos are allowed'), false);
+        }
+    }
+});
+
 const AssetsAnalysis = db.define('asset_analysis_master', {
     asset_analysis_id: {
         type: DataTypes.INTEGER,
@@ -41,6 +73,18 @@ const AssetsAnalysis = db.define('asset_analysis_master', {
         type: DataTypes.STRING
     },
     recommendations: {
+        type: DataTypes.STRING
+    },
+    criticality_analysis_status: {
+        type: DataTypes.STRING
+    },
+    appropriate_action: {
+        type: DataTypes.STRING
+    },
+    action_notes: {
+        type: DataTypes.STRING
+    },
+    resampling_schedule: {
         type: DataTypes.STRING
     },
     analysis_date: {
@@ -77,6 +121,12 @@ const AssetsAnalysis = db.define('asset_analysis_master', {
         type: DataTypes.STRING
     },
     asset_component_id: {
+        type: DataTypes.STRING
+    },
+    documentation: {
+        type: DataTypes.STRING
+    },
+    action_taken: {
         type: DataTypes.STRING
     },
     iron: {
@@ -315,12 +365,18 @@ router.post('/add-assets-analysis', async (req, res) => {
         analysis_date,
         created_by,
         additional_notes,  // Add this
-        l1,
-        l2,
-        l3
+        // l1,
+        // l2,
+        // l3
     } = req.body;
 
     try {
+
+        //Get count for id
+        const analysislength = await knex('asset_analysis_master').count('* as count').first();
+        const asset_analysis_id = (analysislength.count || 0) + 1;
+
+
         // Parse the JSON string from frontend
         let parsedResults = {};
         if (oil_analysis_results) {
@@ -337,15 +393,17 @@ router.post('/add-assets-analysis', async (req, res) => {
         const insertData = {
             asset_id,
             asset_component_id: component_id,  // Add component_id
+            asset_analysis_id: asset_analysis_id,
             asset_running_hours,
             oil_running_hours,
             recommendations,
             analysis_date,
             created_by,
             additional_notes,  // Add additional notes
-            level1: l1,
-            level2: l2,
-            level3: l3,
+            level1: '1',
+            // level1: l1,
+            // level2: l2,
+            // level3: l3,
             is_active: '1',
             created_at: currentTimestamp,
 
@@ -438,9 +496,8 @@ router.post('/add-assets-analysis', async (req, res) => {
 
         console.log('Inserting data with parsed values:', insertData);
 
-        const [add] = await knex('asset_analysis_master').insert(insertData).returning('asset_analysis_id');
+        await knex('asset_analysis_master').insert(insertData);
 
-        const asset_analysis_id = add.asset_analysis_id || add;
 
         // Create change log
         await knex('asset_analysis_logs').insert({
@@ -465,6 +522,344 @@ router.post('/add-assets-analysis', async (req, res) => {
         });
     }
 });
+
+router.post('/update-criticality', async (req, res) => {
+    const currentTimestamp = new Date()
+    try {
+        const {
+            asset_analysis_id,
+            criticality_analysis_report,
+            updated_by
+        } = req.body;
+
+        await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).update({
+            asset_analysis_id,
+            criticality_analysis_status: criticality_analysis_report,
+            updated_by,
+            updated_at: currentTimestamp
+        });
+
+        await knex('asset_analysis_logs').insert({
+            asset_analysis_id,
+            changes_made: updated_by + ' updated criticality status of id: ' + asset_analysis_id + ' to ' + criticality_analysis_report,
+            created_by: updated_by,
+            created_at: currentTimestamp
+        })
+
+        res.status(200).json({ message: 'Updated successfully' });
+
+    } catch (err) {
+        console.log('Unable to update criticality: ', err)
+    }
+})
+
+router.post('/update-resampling-schedule', async (req, res) => {
+    const currentTimestamp = new Date();
+    try {
+        const {
+            asset_analysis_id,
+            resampling_schedule,
+            updated_by
+        } = req.body;
+
+        await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).update({
+            resampling_schedule,
+            updated_by,
+            updated_at: currentTimestamp
+        });
+
+        await knex('asset_analysis_logs').insert({
+            asset_analysis_id,
+            changes_made: updated_by + ' updated resampling schedule of id: ' + asset_analysis_id + ' to ' + resampling_schedule,
+            created_by: updated_by,
+            created_at: currentTimestamp
+        })
+
+        res.status(200).json({ message: 'Updated successfully' });
+    } catch (err) {
+        console.log('Unable to update resampling schedule: ', err)
+    }
+});
+
+// router.post('/update-severe-action', upload.array('documentation'), async (req, res) => {
+//     const currentTimestamp = new Date();
+
+//     try {
+//         const {
+//             asset_analysis_id,
+//             severe_action,
+//             documentation,
+//             updated_by
+//         } = req.body;
+
+//         let documentationPath = null;
+//         if (req.files && req.files.length > 0) {
+//             documentationPath = req.files.map(file => file.path).join(';'); // Save multiple paths separated by ;
+//         }
+
+//         await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).update({
+//             action_taken: severe_action,
+//             documentation: documentation,
+//             updated_by,
+//             updated_at: currentTimestamp
+//         });
+
+//         await knex('asset_analysis_logs').insert({
+//             asset_analysis_id,
+//             changes_made: updated_by + ' updated resampling schedule of id: ' + asset_analysis_id,
+//             created_by: updated_by,
+//             created_at: currentTimestamp
+//         })
+
+//         res.status(200).json({ message: 'Updated successfully' });
+//     } catch (err) {
+//         console.log('Unable to update severe action: ', err)
+//     }
+// })
+router.post('/update-severe-action', upload.array('documentation'), async (req, res) => {
+    const currentTimestamp = new Date();
+
+    try {
+        const {
+            asset_analysis_id,
+            severe_action,
+            updated_by
+        } = req.body;
+
+        let documentationPaths = [];
+
+        // Handle uploaded files
+        if (req.files && req.files.length > 0) {
+            documentationPaths = req.files.map(file => ({
+                originalName: file.originalname,
+                storedName: file.filename,
+                path: file.path,
+                size: file.size,
+                mimetype: file.mimetype
+            }));
+
+            // Store relative paths or just filenames in database
+            const fileNamesString = req.files.map(file => file.filename).join(',');
+
+            await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).update({
+                action_taken: severe_action,
+                documentation: fileNamesString, // Store comma-separated filenames
+                updated_by,
+                updated_at: currentTimestamp
+            });
+        } else {
+            await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).update({
+                action_taken: severe_action,
+                updated_by,
+                updated_at: currentTimestamp
+            });
+        }
+
+        await knex('asset_analysis_logs').insert({
+            asset_analysis_id,
+            changes_made: `${updated_by} updated severe action for id: ${asset_analysis_id}`,
+            created_by: updated_by,
+            created_at: currentTimestamp
+        });
+
+        res.status(200).json({
+            message: 'Updated successfully',
+            files: documentationPaths
+        });
+    } catch (err) {
+        console.error('Unable to update severe action: ', err);
+        res.status(500).json({
+            error: 'Failed to update severe action',
+            details: err.message
+        });
+    }
+});
+
+router.post('/update-remove-severe-action', async (req, res) => {
+    const currentTimestamp = new Date();
+
+    try {
+        const {
+            asset_analysis_id,
+            updated_by
+        } = req.body;
+
+        // First, get the current record to get the documentation files
+        const currentRecord = await knex('asset_analysis_master')
+            .where('asset_analysis_id', asset_analysis_id)
+            .first();
+
+        if (!currentRecord) {
+            return res.status(404).json({ error: 'Record not found' });
+        }
+
+        // Get documentation files from the record
+        const documentationFiles = currentRecord.documentation ? currentRecord.documentation.split(',') : [];
+
+        // USE THE SAME RELATIVE PATH as your storage
+        const documentationPath = './documentation';  // Same as DIR
+        const deletedFiles = [];
+        const failedFiles = [];
+
+        console.log('Documentation path:', documentationPath);
+        console.log('Current working directory:', process.cwd());
+        console.log('Files to delete:', documentationFiles);
+
+        for (const file of documentationFiles) {
+            const cleanFile = file.trim();
+            if (cleanFile) {
+                const filePath = path.join(documentationPath, cleanFile);
+                try {
+                    if (fs.existsSync(filePath)) {
+                        fs.unlinkSync(filePath);
+                        deletedFiles.push(cleanFile);
+                        console.log(`✅ Deleted file: ${filePath}`);
+                    } else {
+                        console.log(`❌ File not found: ${filePath}`);
+                        failedFiles.push({ file: cleanFile, reason: 'File not found' });
+                    }
+                } catch (err) {
+                    console.error(`❌ Error deleting file ${cleanFile}:`, err);
+                    failedFiles.push({ file: cleanFile, reason: err.message });
+                }
+            }
+        }
+
+        // Update the database - set documentation and action_taken to NULL
+        await knex('asset_analysis_master')
+            .where('asset_analysis_id', asset_analysis_id)
+            .update({
+                action_taken: null,
+                documentation: null,
+                updated_by: updated_by,
+                updated_at: currentTimestamp
+            });
+
+        // Create log entry
+        await knex('asset_analysis_logs').insert({
+            asset_analysis_id,
+            changes_made: `${updated_by} removed severe action and documentation for ID: ${asset_analysis_id}. Deleted ${deletedFiles.length} file(s).`,
+            created_by: updated_by,
+            created_at: currentTimestamp
+        });
+
+        res.status(200).json({
+            message: 'Severe action and documentation removed successfully',
+            deletedFiles: deletedFiles,
+            failedFiles: failedFiles,
+            deletedCount: deletedFiles.length,
+            failedCount: failedFiles.length
+        });
+
+    } catch (err) {
+        console.error('Unable to remove severe action:', err);
+        res.status(500).json({
+            error: 'Failed to remove severe action',
+            details: err.message
+        });
+    }
+});
+
+router.post('/update-appropriate-actions', async (req, res) => {
+    const currentTimestamp = new Date();
+    try {
+        const {
+            asset_analysis_id,
+            appropriate_action,
+            action_notes,
+            updated_by
+        } = req.body;
+
+        await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).update({
+            level3: '1',
+            appropriate_action,
+            action_notes,
+            updated_by,
+            updated_at: currentTimestamp
+        })
+
+
+        res.status(200).json({
+            message: 'Updated successfully'
+        });
+    } catch (err) {
+        console.log('Unable to update: ', err)
+    }
+})
+
+router.post('/update-level-two', async (req, res) => {
+    const currentTimestamp = new Date();
+    try {
+        const {
+            asset_analysis_id,
+            updated_by,
+
+        } = req.body;
+
+        await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).update({
+            level2: '1',
+            updated_by: updated_by,
+            updated_at: currentTimestamp,
+
+        })
+
+        res.status(200).json({ message: 'Updated successfully' });
+
+    } catch (err) {
+        console.log('Unable to update to level2: ', err)
+    }
+})
+router.post('/update-level-two-user', async (req, res) => {
+    const currentTimestamp = new Date();
+    try {
+        const {
+            asset_analysis_id,
+            updated_by,
+
+        } = req.body;
+
+        await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).update({
+            level2: '1',
+            updated_by: updated_by,
+            updated_at: currentTimestamp,
+            appropriate_action: '',
+            action_notes: ''
+        })
+
+        res.status(200).json({ message: 'Updated successfully' });
+
+    } catch (err) {
+        console.log('Unable to update to level2: ', err)
+    }
+})
+
+router.post('/update-level-one', async (req, res) => {
+    const currentTimestamp = new Date();
+    try {
+        const {
+            asset_analysis_id,
+            updated_by,
+            appropriate_action,
+            action_notes
+
+        } = req.body;
+
+        await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).update({
+            level1: '1',
+            level2: '',
+            level3: '',
+            appropriate_action,
+            action_notes,
+            updated_by: updated_by,
+            updated_at: currentTimestamp
+        })
+
+        res.status(200).json({ message: 'Updated successfully' });
+
+    } catch (err) {
+        console.log('Unable to update to level2: ', err)
+    }
+})
 
 router.get('/get-all-submitted-assets', async (req, res) => {
     try {
@@ -492,6 +887,10 @@ router.get('/get-submitted-assets-by-id', async (req, res, next) => {
 
 router.post('/add-option', async (req, res) => {
     try {
+
+        const optionlength = await knex('option_master').count('* as count').first();
+        const option_id = (optionlength.count || 0) + 1;
+
         const {
             option_asset_location,
             option_asset_type,
@@ -508,6 +907,7 @@ router.post('/add-option', async (req, res) => {
             created_by
         )
         await knex('option_master').insert({
+            option_id: option_id,
             option_asset_location: option_asset_location.join(','),
             option_asset_type: option_asset_type.join(','),
             option_asset_category: option_asset_category.join(','),
@@ -810,7 +1210,6 @@ router.post('/update-trivector', async (req, res) => {
         });
     }
 });
-
 
 router.get('/get-all-trivector', async (req, res) => {
     try {

@@ -123,6 +123,9 @@ const AssetsComponents = db.define('assets_component_master', {
 //Add Announcement
 // router.post('/add-assets', async (req, res) => {
 //     const currentTimestamp = new Date();
+
+
+
 //     const { asset_name,
 //         asset_type,
 //         asset_location,
@@ -162,8 +165,13 @@ const AssetsComponents = db.define('assets_component_master', {
 
 // });
 
+
+
+
+
 router.post('/add-assets', async (req, res) => {
     const currentTimestamp = new Date();
+
     const {
         asset_name,
         asset_type,
@@ -178,10 +186,18 @@ router.post('/add-assets', async (req, res) => {
     } = req.body;
 
     try {
+        // Get the count of records in assets_master table
+        const assetmasterlength = await knex('assets_master').count('* as count').first();
+        const asset_component_id_length = await knex('assets_component_master').count('* as count').first();
+        // Increment by 1 to get the new asset_id
+        const asset_id = (assetmasterlength.count || 0) + 1;
+        const asset_component_id = (asset_component_id_length.count || 0) + 1;
+
         // Start a transaction to ensure all operations succeed or fail together
         await knex.transaction(async (trx) => {
             // Insert into assets_master with has_components field
-            const [add] = await trx('assets_master').insert({
+            await trx('assets_master').insert({
+                asset_id,
                 asset_name,
                 asset_type,
                 asset_location,
@@ -193,9 +209,7 @@ router.post('/add-assets', async (req, res) => {
                 is_active: '1',
                 has_components: has_components || (components && components.length > 0 ? '1' : '0'), // Store 1 if components exist, else 0
                 created_at: currentTimestamp
-            }).returning('asset_id');
-
-            const asset_id = add.asset_id || add;
+            })
 
             // Insert into assets_logs
             await trx('assets_logs').insert({
@@ -209,6 +223,7 @@ router.post('/add-assets', async (req, res) => {
             if (components && components.length > 0) {
                 // Prepare all component records for bulk insert
                 const componentRecords = components.map(component => ({
+                    asset_component_id: asset_component_id,
                     asset_id: asset_id,
                     asset_name: asset_name,
                     asset_component_type: component.componentType,
@@ -415,8 +430,12 @@ router.post('/add-component', async (req, res) => {
         asset_id
     } = req.body;
 
+    const componentLength = await knex('assets_component_master').count('* as count').first();
+    const asset_component_id = (componentLength.count || 0) + 1;
+
 
     await knex('assets_component_master').insert({
+        asset_component_id: asset_component_id,
         asset_component_name: component_name,
         asset_component_type: component_type,
         created_by: created_by,
