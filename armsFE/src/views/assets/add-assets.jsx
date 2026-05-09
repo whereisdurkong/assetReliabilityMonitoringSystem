@@ -251,12 +251,43 @@ export default function AddAsset() {
         return true;
     };
 
+    const checkForDuplicateAsset = async () => {
+        try {
+            const res = await axios.get(`${config.baseApi}/assets/get-all-assets`);
+            const data = res.data || [];
+
+            const duplicateAssetName = data.some(
+                asset => asset.asset_name?.toLowerCase() === formData.assetName.toLowerCase()
+            );
+
+            if (duplicateAssetName) {
+                showAlertMessage('error', 'Duplicate Asset', `An asset with the name "${formData.assetName}" already exists. Please use a different asset name.`);
+                return true; // indicates duplicate found
+            }
+
+            return false; // no duplicate found
+        } catch (err) {
+            console.error('Unable to fetch all assets: ', err);
+            showAlertMessage('error', 'Validation Error', 'Unable to verify asset name. Please try again.');
+            return true; // treat as duplicate found to prevent submission
+        }
+    };
+
+    // Update your handleSubmit function:
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
 
         const empInfo = JSON.parse(localStorage.getItem("user"));
+
         if (!Validation()) {
+            setIsLoading(false);
+            return;
+        }
+
+        // Check for duplicate asset name before submitting
+        const isDuplicate = await checkForDuplicateAsset();
+        if (isDuplicate) {
             setIsLoading(false);
             return;
         }
@@ -299,7 +330,7 @@ export default function AddAsset() {
             }, 2000);
         } catch (err) {
             console.log('Unable to submit!', err);
-            showAlertMessage('error', 'Submission Failed', 'There was an error creating the asset. Please try again.');
+            showAlertMessage('error', 'Submission Failed', err.response?.data?.message || 'There was an error creating the asset. Please try again.');
             setIsLoading(false);
         }
     };
@@ -420,7 +451,7 @@ export default function AddAsset() {
                     initial={{ opacity: 0, y: -50 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
-                    style={{ maxWidth: '1200px', margin: '0 auto' }}
+                    style={{ maxWidth: '2000px', margin: '0 auto' }}
                 >
                     {/* Productivity Header with Stats */}
                     <motion.div

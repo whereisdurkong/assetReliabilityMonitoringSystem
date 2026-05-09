@@ -143,7 +143,7 @@ export default function AllAssets() {
                 animation: 'float 18s infinite ease-in-out', zIndex: 1
             }} />
 
-            <div style={{ position: 'relative', zIndex: 2, maxWidth: '1400px', margin: '0 auto' }}>
+            <div style={{ position: 'relative', zIndex: 2, maxWidth: '2000px', margin: '0 auto' }}>
                 {/* Header */}
                 <div style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -224,6 +224,60 @@ export default function AllAssets() {
                         alignItems: 'flex-start', justifyContent: 'space-between'
                     }}>
                         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+
+                            {/* Search with Label on Top */}
+                            <div style={{
+                                display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '550px',
+                                flex: '2 1 150px'
+                            }}>
+                                <span style={{ fontSize: '0.75rem', color: '#F9982F', fontWeight: '500', letterSpacing: '0.5px' }}>
+                                    SEARCH
+                                </span>
+                                <div style={{ position: 'relative', width: '100%', height: '42px' }}>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Search assets..."
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                        style={{
+                                            background: 'rgba(0,0,0,0.3)',
+                                            border: '2px solid #53535375',
+                                            borderRadius: '10px',
+                                            color: '#fff',
+                                            fontSize: '0.85rem',
+                                            height: '42px',
+                                            padding: '10px 40px 10px 40px'
+                                        }}
+                                        onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                        onBlur={(e) => e.target.style.borderColor = '#53535375'}
+                                    />
+                                    <FeatherIcon icon="search" size={16} style={{
+                                        color: '#F9982F',
+                                        position: 'absolute',
+                                        left: '15px',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)'
+                                    }} />
+                                    {searchTerm && (
+                                        <Button
+                                            onClick={clearSearch}
+                                            variant="link"
+                                            style={{
+                                                position: 'absolute',
+                                                right: '12px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                padding: 0,
+                                                color: '#EAB56F',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            <FeatherIcon icon="x" size={16} />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+
                             {/* Active/Inactive Toggle with Label on Top */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <span style={{ fontSize: '0.75rem', color: '#F9982F', fontWeight: '500', letterSpacing: '0.5px' }}>
@@ -232,8 +286,16 @@ export default function AllAssets() {
                                 <div style={{
                                     display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '20px',
                                     alignItems: 'center',
-                                    padding: '4px', height: '42px', border: '1px solid rgba(255, 174, 0, 0.33)'
-                                }}>
+                                    padding: '4px', height: '42px',
+                                    border: '2px solid #53535375'
+                                }}
+                                    onFocus={(e) => {
+                                        e.target.closest('div').style.borderColor = '#E37239';
+                                    }}
+                                    onBlur={(e) => {
+                                        e.target.closest('div').style.borderColor = '#53535375';
+                                    }}
+                                >
                                     {['Active', 'Inactive'].map((label, idx) => (
                                         <Button
                                             key={label}
@@ -263,7 +325,7 @@ export default function AllAssets() {
                                     onChange={e => setSelectedCategory(e.target.value)}
                                     style={{
                                         background: 'rgba(0,0,0,0.3)',
-                                        border: '1px solid rgba(255, 174, 0, 0.33)',
+                                        border: '2px solid #53535375',
                                         borderRadius: '10px',
                                         color: '#fff',
                                         fontSize: '0.85rem',
@@ -272,6 +334,8 @@ export default function AllAssets() {
                                         height: '42px',
                                         padding: '0 20px'
                                     }}
+                                    onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                    onBlur={(e) => e.target.style.borderColor = '#53535375'}
                                 >
                                     <option value="all" style={{ background: '#254252' }}>All Categories</option>
                                     {categories.map(cat => (
@@ -290,7 +354,7 @@ export default function AllAssets() {
                                     onChange={e => setSelectedLocation(e.target.value)}
                                     style={{
                                         background: 'rgba(0,0,0,0.3)',
-                                        border: '1px solid rgba(255, 174, 0, 0.33)',
+                                        border: '2px solid #53535375',
                                         borderRadius: '10px',
                                         color: '#fff',
                                         fontSize: '0.85rem',
@@ -299,60 +363,14 @@ export default function AllAssets() {
                                         height: '42px',
                                         padding: '0 20px'
                                     }}
+                                    onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                    onBlur={(e) => e.target.style.borderColor = '#53535375'}
                                 >
                                     <option value="all" style={{ background: '#254252' }}>All Locations</option>
                                     {locations.map(loc => (
                                         <option key={loc} value={loc} style={{ background: '#254252' }}>{formatDisplayName(loc)}</option>
                                     ))}
                                 </Form.Select>
-                            </div>
-
-                            {/* Search with Label on Top */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '280px', flex: 1 }}>
-                                <span style={{ fontSize: '0.75rem', color: '#F9982F', fontWeight: '500', letterSpacing: '0.5px' }}>
-                                    SEARCH
-                                </span>
-                                <div style={{ position: 'relative', width: '100%', height: '42px' }}>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Search assets..."
-                                        value={searchTerm}
-                                        onChange={e => setSearchTerm(e.target.value)}
-                                        style={{
-                                            background: 'rgba(0,0,0,0.3)',
-                                            border: '1px solid rgba(255, 174, 0, 0.33)',
-                                            borderRadius: '10px',
-                                            color: '#fff',
-                                            fontSize: '0.85rem',
-                                            height: '42px',
-                                            padding: '10px 40px 10px 40px'
-                                        }}
-                                    />
-                                    <FeatherIcon icon="search" size={16} style={{
-                                        color: '#F9982F',
-                                        position: 'absolute',
-                                        left: '15px',
-                                        top: '50%',
-                                        transform: 'translateY(-50%)'
-                                    }} />
-                                    {searchTerm && (
-                                        <Button
-                                            onClick={clearSearch}
-                                            variant="link"
-                                            style={{
-                                                position: 'absolute',
-                                                right: '12px',
-                                                top: '50%',
-                                                transform: 'translateY(-50%)',
-                                                padding: 0,
-                                                color: '#EAB56F',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            <FeatherIcon icon="x" size={16} />
-                                        </Button>
-                                    )}
-                                </div>
                             </div>
 
                             {/* Sort Order */}
@@ -364,7 +382,7 @@ export default function AllAssets() {
                                     onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
                                     style={{
                                         background: 'rgba(0,0,0,0.3)',
-                                        border: '1px solid rgba(255, 174, 0, 0.33)',
+                                        border: '2px solid #53535375',
                                         borderRadius: '10px',
                                         color: '#F9982F',
                                         fontSize: '0.85rem',
@@ -375,6 +393,8 @@ export default function AllAssets() {
                                         height: '42px',
                                         padding: '0 20px'
                                     }}
+                                    onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                    onBlur={(e) => e.target.style.borderColor = '#53535375'}
                                 >
                                     <FeatherIcon icon={sortOrder === 'newest' ? 'arrow-down' : 'arrow-up'} size={14} />
                                     {sortOrder === 'newest' ? 'Newest First' : 'Oldest First'}
@@ -386,7 +406,17 @@ export default function AllAssets() {
                                 <span style={{ fontSize: '0.75rem', color: '#F9982F', fontWeight: '500', letterSpacing: '0.5px' }}>
                                     VIEW
                                 </span>
-                                <div style={{ display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', padding: '4px', height: '42px', alignItems: 'center', border: '1px solid rgba(255, 174, 0, 0.33)' }}>
+                                <div style={{
+                                    display: 'flex', background: 'rgba(0,0,0,0.3)', borderRadius: '10px', padding: '4px', height: '42px', alignItems: 'center',
+                                    border: '2px solid #53535375'
+                                }}
+                                    onFocus={(e) => {
+                                        e.target.closest('div').style.borderColor = '#E37239';
+                                    }}
+                                    onBlur={(e) => {
+                                        e.target.closest('div').style.borderColor = '#53535375';
+                                    }}
+                                >
                                     <Button
                                         onClick={() => setViewMode('table')}
                                         variant={viewMode === 'table' ? 'primary' : 'secondary'}

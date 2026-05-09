@@ -17,8 +17,11 @@ import { MdOutlineLocationOn, MdCategory, MdInventory } from 'react-icons/md';
 import axios from 'axios';
 import config from 'config';
 import FeatherIcon from 'feather-icons-react';
+import { color } from 'framer-motion';
+import { useNavigate } from 'react-router-dom'; // Add this import
 
 export default function ViewAsset() {
+    const navigate = useNavigate(); // Add this line
     const asset_id = new URLSearchParams(window.location.search).get('id');
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
@@ -50,6 +53,9 @@ export default function ViewAsset() {
     const [masterData, setMasterData] = useState([]);
     const [isDataLoaded, setIsDataLoaded] = useState(false);
 
+    // Add state for bounce animation
+    const [shouldBounce, setShouldBounce] = useState(false);
+
     const trivectorOptions = [
         { label: 'Rotating Machine', value: 'rotating-machine' },
         { label: 'Stationary Engine', value: 'stationary-engine' },
@@ -63,6 +69,19 @@ export default function ViewAsset() {
         componentName: '',
         componentType: ''
     });
+
+    // Add useEffect for bounce animation
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setShouldBounce(true);
+            // Remove the bounce class after animation completes
+            setTimeout(() => {
+                setShouldBounce(false);
+            }, 500);
+        }, 2000); // Every 5 seconds
+
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         const fetchLocationOptions = async () => {
@@ -313,6 +332,31 @@ export default function ViewAsset() {
         return true;
     };
 
+    const checkForDuplicateAsset = async () => {
+        try {
+            const res = await axios.get(`${config.baseApi}/assets/get-all-assets`);
+            const data = res.data || [];
+            console.log(data)
+            console.log(asset_id)
+            const duplicateAssetName = data.some(
+                asset => asset.asset_name?.toLowerCase() === formData.assetName.toLowerCase() &&
+                    asset.asset_id !== asset_id
+            );
+
+            if (duplicateAssetName) {
+                showAlertMessage('error', 'Duplicate Asset', `An asset with the name "${formData.assetName}" already exists. Please use a different asset name.`);
+                return true; // indicates duplicate found
+            }
+
+
+            return false; // no duplicate found
+        } catch (err) {
+            console.error('Unable to fetch all assets: ', err);
+            showAlertMessage('error', 'Validation Error', 'Unable to verify asset name. Please try again.');
+            return true; // treat as duplicate found to prevent submission
+        }
+    };
+
     const handleUpdate = async (e) => {
         e.preventDefault();
         setIsLoading(true);
@@ -321,6 +365,14 @@ export default function ViewAsset() {
             setIsLoading(false);
             return;
         }
+
+        // Check for duplicate asset name before submitting
+        const isDuplicate = await checkForDuplicateAsset();
+        if (isDuplicate) {
+
+            return;
+        }
+
 
         let changes_made = "";
         if (originalData.current) {
@@ -379,6 +431,10 @@ export default function ViewAsset() {
         setIsEditing(false);
     };
 
+    const handleMonitoring = () => {
+        navigate(`/asset-monitoring?id=${asset_id}`)
+    }
+
     return (
         <div style={{
             background: 'radial-gradient(circle at 10% 30%, #254252 0%, #171C2D 100%)',
@@ -386,7 +442,7 @@ export default function ViewAsset() {
             padding: '40px',
             position: 'relative',
             overflow: 'hidden',
-            paddingTop: '50px'
+            paddingTop: '80px'
         }}>
             {/* Animated background elements */}
             <div style={{
@@ -425,9 +481,9 @@ export default function ViewAsset() {
 
             {/* Component Modal */}
             <Modal show={showComponentModal} onHide={() => setShowComponentModal(false)} centered contentClassName="custom-modal-content">
-                <Modal.Header closeButton style={{ borderBottom: '1px solid #e2e8f0', background: 'linear-gradient(165deg, #eebf81 0%, #ffa600 100%)', color: 'white', borderRadius: '16px 16px 0 0' }}>
-                    <Modal.Title style={{ fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#2b2b2b' }}>
-                        <FiCpu size={23} color='#4e4e4e' />
+                <Modal.Header closeButton style={{ borderBottom: '1px solid #e2e8f0', background: 'linear-gradient(165deg, #ffa600  0%, #df9e4a 100%)', color: 'white', borderRadius: '16px 16px 0 0' }}>
+                    <Modal.Title style={{ fontSize: '16px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff' }}>
+                        <FiCpu size={23} color='#ffffff' />
                         {editingComponent ? 'Edit Component' : 'Add New Component'}
                     </Modal.Title>
                 </Modal.Header>
@@ -486,8 +542,8 @@ export default function ViewAsset() {
                 <Modal.Footer style={{ borderTop: '1px solid #e2e8f0', }}>
                     <Button variant="secondary" onClick={() => setShowComponentModal(false)} style={{
                         background: 'linear-gradient(135deg, #ea6f6f, #f92f2f)',
-                        border: 'none', borderRadius: '12px', padding: '14px 28px',
-                        fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                        border: 'none', borderRadius: '12px', padding: '10px 28px',
+                        fontSize: '0.85rem', fontWeight: '600', color: '#fff',
                         cursor: 'pointer', display: 'flex', alignItems: 'center',
                         gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
                         transition: 'all 0.2s ease'
@@ -501,8 +557,8 @@ export default function ViewAsset() {
                         variant="secondary"
                         style={{
                             background: 'linear-gradient(135deg, #eab56f, #f99b2f)',
-                            border: 'none', borderRadius: '12px', padding: '14px 28px',
-                            fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                            border: 'none', borderRadius: '12px', padding: '10px 28px',
+                            fontSize: '0.85rem', fontWeight: '600', color: '#fff',
                             cursor: 'pointer', display: 'flex', alignItems: 'center',
                             gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
                             transition: 'all 0.2s ease'
@@ -516,12 +572,12 @@ export default function ViewAsset() {
                 </Modal.Footer>
             </Modal>
 
-            <Container fluid style={{ maxWidth: '1200px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+            <Container fluid style={{ maxWidth: '2000px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
                 {/* Header */}
                 <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                     <div>
                         <h1 style={{
-                            fontSize: '4.8rem', fontWeight: '700', color: '#EAB56F',
+                            fontSize: '2.8rem', fontWeight: '700', color: '#EAB56F',
                             textShadow: '0 4px 20px rgba(255, 0, 0, 0.2)', margin: 0, display: 'flex', alignItems: 'center', gap: '12px'
                         }}>
                             Asset ID {asset_id}
@@ -544,7 +600,7 @@ export default function ViewAsset() {
                                 {formData.isActive === '1' ? 'Active' : 'Inactive'}
                             </div>
                         </h1>
-                        <p style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.7)', margin: '4px 0 0' }}>View and manage asset details</p>
+                        <p style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.7)', margin: '4px 0 0' }}>Complete asset information and configuration</p>
                     </div>
                     <div>
                         {!isEditing ? (
@@ -566,33 +622,108 @@ export default function ViewAsset() {
                                 Edit Asset
                             </Button>
                         ) : (
-                            <Button
-                                onClick={handleCancelEdit}
-                                variant="secondary"
-                                style={{
-                                    background: 'linear-gradient(135deg, #ea8c6f, #f94d2f)',
-                                    border: 'none', borderRadius: '12px', padding: '14px 28px',
-                                    fontSize: '0.95rem', fontWeight: '600', color: '#fff',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center',
-                                    gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
-                                    transition: 'all 0.2s ease'
-                                }}
-                                onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
-                                onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
-                            >
-                                <FiX size={14} />
-                                Cancel
-                            </Button>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                                <Button
+                                    onClick={handleCancelEdit}
+                                    variant="secondary"
+                                    style={{
+                                        background: 'linear-gradient(135deg, #ea8c6f, #f94d2f)',
+                                        border: 'none', borderRadius: '12px', padding: '14px 28px',
+                                        fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                        gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
+                                    onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
+                                >
+                                    <FiX size={14} />
+                                    Cancel
+                                </Button>
+
+                                <Button
+                                    onClick={handleUpdate}
+                                    style={{
+                                        background: 'linear-gradient(135deg, #EAB56F, #F9982F)',
+                                        border: 'none', borderRadius: '12px', padding: '14px 28px',
+                                        fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                        gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
+                                        transition: 'all 0.2s ease', justifyContent: 'center'
+                                    }}
+                                    onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
+                                    onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
+                                >
+                                    <FiSave size={14} />
+                                    Save Changes
+                                </Button>
+                            </div>
+
+
                         )}
                     </div>
                 </div>
 
                 {/* Stats Row */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-                    <StatCard icon={FiBox} label="Asset ID" value={asset_id} textColor="#ff9900" backgroundColor="#ff990023" borderColor="#ff7b00" />
-                    <StatCard icon={FiCalendar} label="Commissioned" value={formData.commissioningDate || '—'} textColor="#7980e6" backgroundColor="#1100ff23" borderColor="#1100ff" />
-                    <StatCard icon={FiCpu} label="Components" value={components.length} textColor="#4dda60" backgroundColor="#00ff0d23" borderColor="#008b13" />
-                    <StatCard icon={FiUser} label="Created By" value={formData.created_by || '—'} textColor="#ccd672" backgroundColor="#ffee0023" borderColor="#eeff00" />
+                    {/* <StatCard icon={FiBox} label="Asset ID" value={asset_id} textColor="#ff9900" backgroundColor="#ff990023" borderColor="#ff7b00" /> */}
+                    <StatCard icon={FiCalendar} label="Commissioned" value={formData.commissioningDate || '—'} textColor="#7980e6" backgroundColor="#1100ff23" borderColor="#5f55e7" />
+                    <StatCard icon={FiCpu} label="Components" value={components.length} textColor="#4dda60" backgroundColor="#00ff0d23" borderColor="#30ca45" />
+                    <StatCard icon={FiUser} label="Created By" value={formData.created_by || '—'} textColor="#ccd672" backgroundColor="#ffee0023" borderColor="#fff45f" />
+
+                    {/* Bounce Button with animation */}
+                    <button
+                        onClick={handleMonitoring}
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(255, 153, 0, 0.9), rgba(227, 114, 57, 0.9))',
+                            backdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                            borderRadius: '16px',
+                            padding: '12px 28px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            boxShadow: '0 8px 20px rgba(227, 114, 57, 0.3)',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            group: 'button',
+                            animation: shouldBounce ? 'bounce 0.5s ease' : 'none'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 15px 30px rgba(227, 114, 57, 0.4)';
+                            e.currentTarget.style.background = 'linear-gradient(135deg, rgb(255, 153, 0), rgb(227, 114, 57))';
+                            const arrow = e.currentTarget.querySelector('.arrow-icon');
+                            if (arrow) arrow.style.transform = 'translateX(4px)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 8px 20px rgba(227, 114, 57, 0.3)';
+                            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(255, 153, 0, 0.9), rgba(227, 114, 57, 0.9))';
+                            const arrow = e.currentTarget.querySelector('.arrow-icon');
+                            if (arrow) arrow.style.transform = 'translateX(0)';
+                        }}
+                    >
+                        <span style={{
+                            color: '#fff',
+                            fontWeight: '600',
+                            fontSize: '14px',
+                            letterSpacing: '0.5px'
+                        }}>
+                            View Asset Monitoring
+                        </span>
+                        <FeatherIcon
+                            icon='arrow-right'
+                            size={18}
+                            color="#fff"
+                            className="arrow-icon"
+                            style={{
+                                transition: 'transform 0.3s ease'
+                            }}
+                        />
+                    </button>
                 </div>
 
                 {/* Main Card */}
@@ -605,7 +736,7 @@ export default function ViewAsset() {
                 }}>
                     <div style={{ padding: '16px 24px', borderBottom: '1px solid #eef2ff', background: '#fafcff' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <FiDatabase size={18} color="#3b82f6" />
+                            <FiDatabase size={18} color="#f69f3b" />
                             <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a', margin: 0 }}>Asset Information</h2>
                         </div>
                     </div>
@@ -638,7 +769,7 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiBox size={14} />Asset Name <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            }}> <FiBox style={{ height: '20px', width: '20px' }} color='#ff6600' />Asset Name <span style={{ color: '#ef4444' }}>*</span></Form.Label>
                                             <Form.Control
                                                 type="text"
                                                 name="assetName"
@@ -662,7 +793,7 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiMapPin size={14} />Location <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            }}> <FiMapPin style={{ height: '20px', width: '20px' }} color='#ff6600' />Location <span style={{ color: '#ef4444' }}>*</span></Form.Label>
                                             <Form.Select
                                                 name="location"
                                                 value={formData.location || ''}
@@ -692,7 +823,7 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiSliders size={14} />Asset Type <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            }}> <FiSliders style={{ height: '20px', width: '20px' }} color='#ff6600' />Asset Type <span style={{ color: '#ef4444' }}>*</span></Form.Label>
                                             <Form.Select
                                                 name="assetType"
                                                 value={formData.assetType || ''}
@@ -721,7 +852,7 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiGrid size={14} />Category <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            }}> <FiGrid style={{ height: '20px', width: '20px' }} color='#ff6600' />Category <span style={{ color: '#ef4444' }}>*</span></Form.Label>
                                             <Form.Select
                                                 name="category"
                                                 value={formData.category || ''}
@@ -750,7 +881,7 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiZap size={14} /> Trivector <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            }}> <FiZap style={{ height: '20px', width: '20px' }} color='#ff6600' /> Trivector <span style={{ color: '#ef4444' }}>*</span></Form.Label>
                                             <Form.Select
                                                 name="trivector"
                                                 value={formData.trivector || ''}
@@ -778,7 +909,7 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiCalendar size={14} /> Commissioning Date <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            }}> <FiCalendar style={{ height: '20px', width: '20px' }} color='#ff6600' /> Commissioning Date <span style={{ color: '#ef4444' }}>*</span></Form.Label>
                                             <Form.Control
                                                 type="date"
                                                 name="commissioningDate"
@@ -802,7 +933,7 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiClipboard size={14} /> Notes</Form.Label>
+                                            }}> <FiClipboard style={{ height: '20px', width: '20px' }} color='#ff6600' /> Notes</Form.Label>
                                             <Form.Control
                                                 as="textarea"
                                                 rows={2}
@@ -822,25 +953,7 @@ export default function ViewAsset() {
                                             />
                                         </Form.Group>
                                     </Col>
-                                    <Col xs={12}>
-                                        <Button
-                                            onClick={handleUpdate}
 
-                                            style={{
-                                                background: 'linear-gradient(135deg, #EAB56F, #F9982F)',
-                                                border: 'none', borderRadius: '12px', padding: '14px 28px',
-                                                fontSize: '0.95rem', fontWeight: '600', color: '#fff',
-                                                cursor: 'pointer', display: 'flex', alignItems: 'center',
-                                                gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
-                                                transition: 'all 0.2s ease', width: '100%', justifyContent: 'center'
-                                            }}
-                                            onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
-                                            onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
-                                        >
-                                            <FiSave size={14} />
-                                            Save Changes
-                                        </Button>
-                                    </Col>
                                 </Row>
                             </Form>
                         )}
@@ -856,7 +969,7 @@ export default function ViewAsset() {
                 }}>
                     <div style={{ padding: '16px 24px', borderBottom: '1px solid #eef2ff', background: '#fafcff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <FiCpu size={18} color="#3b82f6" />
+                            <FiCpu style={{ height: '20px', width: '20px' }} color='#ff6600' />
                             <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a', margin: 0 }}>Components ({components.length})</h2>
                         </div>
                         {isEditing && (
@@ -864,8 +977,8 @@ export default function ViewAsset() {
                                 onClick={handleAddComponent}
                                 style={{
                                     background: 'linear-gradient(135deg, #EAB56F, #F9982F)',
-                                    border: 'none', borderRadius: '12px', padding: '14px 28px',
-                                    fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                                    border: 'none', borderRadius: '12px', padding: '10px 28px',
+                                    fontSize: '0.85rem', fontWeight: '600', color: '#fff',
                                     cursor: 'pointer', display: 'flex', alignItems: 'center',
                                     gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
                                     transition: 'all 0.2s ease',
@@ -903,7 +1016,7 @@ export default function ViewAsset() {
                                                         <Button
                                                             variant="link"
                                                             onClick={() => handleEditComponent(component)}
-                                                            style={{ color: '#3b82f6', padding: '0', fontSize: '12px', textDecoration: 'none' }}
+                                                            style={{ color: '#f6953b', padding: '0', fontSize: '12px', textDecoration: 'none' }}
                                                         >
                                                             Edit
                                                         </Button>
@@ -935,9 +1048,21 @@ export default function ViewAsset() {
                         33% { transform: translate(50px, -50px) rotate(120deg); }
                         66% { transform: translate(-30px, 30px) rotate(240deg); }
                     }
+                    
+                    @keyframes bounce {
+                        0%, 100% {
+                            transform: translateY(0);
+                        }
+                        50% {
+                            transform: translateY(-5px);
+                        }
+                        70% {
+                            transform: translateY(2px);
+                        }
+                    }
                 `}
             </style>
-        </div >
+        </div>
     );
 }
 
@@ -951,8 +1076,8 @@ const StatCard = ({ icon: Icon, label, value, textColor, backgroundColor, border
         boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
     }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px', }}>
-            <Icon size={18} color='#ffffff' />
-            <span style={{ fontSize: '12px', fontWeight: '600', color: '#cfcfcf', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
+            <Icon size={18} color={borderColor} />
+            <span style={{ fontSize: '12px', fontWeight: '600', color: borderColor, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
         </div>
         <div style={{ fontSize: '20px', fontWeight: '700', color: textColor || '#0f172a' }}>{value || '—'}</div>
     </div>

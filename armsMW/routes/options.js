@@ -486,6 +486,8 @@ router.post('/update-assets', async (req, res) => {
     })
     res.status(200).json({ message: 'Asset updated successfully' });
 
-})
+});
+
+
 
 module.exports = router;

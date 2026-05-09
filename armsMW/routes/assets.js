@@ -117,56 +117,43 @@ const AssetsComponents = db.define('assets_component_master', {
     tableName: 'assets_component_master'
 });
 
-
-
-
-//Add Announcement
-// router.post('/add-assets', async (req, res) => {
-//     const currentTimestamp = new Date();
-
-
-
-//     const { asset_name,
-//         asset_type,
-//         asset_location,
-//         asset_category,
-//         date_commisioning,
-//         asset_notes,
-//         created_by
-//     } = req.body;
-
-//     try {
-//         const [add] = await knex('assets_master').insert({
-//             asset_name,
-//             asset_type,
-//             asset_location,
-//             asset_category,
-//             date_commisioning,
-//             asset_notes,
-//             created_by,
-//             created_at: currentTimestamp
-//         }).returning('asset_id');
-
-//         const asset_id = add.asset_id || add;
-
-//         await knex('assets_logs').insert({
-//             asset_id: asset_id,
-//             changes_made: `${created_by} has added an asset.`,
-//             created_at: currentTimestamp,
-//             created_by: created_by
-//         })
-
-//         res.json(200);
-//         console.log('triggered /add-anc')
-
-//     } catch (err) {
-//         console.log('INTERNAL ERROR UNABLE TO PUT ASSETS: ', err)
-//     }
-
-// });
-
-
-
+const AssetsMonitoring = db.define('monitoring_master', {
+    asset_monitoring_id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true
+    },
+    asset_id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true
+    },
+    monitoring_date: {
+        type: DataTypes.STRING
+    },
+    monitoring_status: {
+        type: DataTypes.STRING
+    },
+    monitoring_running_hours: {
+        type: DataTypes.STRING
+    },
+    created_by: {
+        type: DataTypes.STRING
+    },
+    created_at: {
+        type: DataTypes.STRING
+    },
+    updated_by: {
+        type: DataTypes.STRING
+    },
+    updated_at: {
+        type: DataTypes.STRING
+    },
+}, {
+    freezeTableName: false,
+    timestamps: false,
+    createdAt: false,
+    updatedAt: false,
+    tableName: 'monitoring_master'
+});
 
 
 router.post('/add-assets', async (req, res) => {
@@ -392,7 +379,6 @@ router.post('/update-assets', async (req, res) => {
 
 })
 
-
 router.post('/update-component', async (req, res) => {
     const currentTimestamp = new Date();
     const {
@@ -452,7 +438,54 @@ router.post('/add-component', async (req, res) => {
     })
     res.status(200).json({ message: 'Component added successfully' });
 
+});
+
+
+router.post('/add-monitoring-log', async (req, res) => {
+    try {
+        const {
+            asset_id,
+            monitoringDate,
+            monitoringTime,
+            equipmentStatus,
+            runningHours,
+            created_by
+        } = req.body;
+
+        const currentTimestamp = new Date();
+
+        const monitoringlength = await knex('monitoring_master').count('* as count').first();
+        const monitoring_id = (monitoringlength.count || 0) + 1;
+
+        await knex('monitoring_master').insert({
+            asset_monitoring_id: monitoring_id,
+            monitoring_date: monitoringDate,
+            monitoring_time: monitoringTime,
+            monitoring_status: equipmentStatus,
+            monitoring_running_hours: runningHours,
+            created_by: created_by,
+            asset_id: asset_id,
+            created_at: currentTimestamp
+        })
+
+        res.status(200).json({ message: 'Monitoring logs added successfully' });
+    } catch (err) {
+        console.log('Unable to add monitoring log: ', err)
+    }
+});
+
+router.get('/all-monitoring', async (req, res) => {
+    try {
+
+        const fetch = await knex('monitoring_master').select('*');
+        res.json(fetch);
+
+
+    } catch (err) {
+        console.log('Unable to fetch asset monitoring: ', err)
+    }
 })
+
 
 
 

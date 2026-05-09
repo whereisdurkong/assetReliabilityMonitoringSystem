@@ -1,3 +1,633 @@
+// import { useEffect, useState } from "react";
+// import axios from 'axios';
+// import config from 'config';
+// import FeatherIcon from "feather-icons-react";
+// import { Col } from "react-bootstrap";
+// import Feather from "../ui-elements/icons/Feather";
+// import { useNavigate } from 'react-router';
+
+// export default function AssetDashboard() {
+//     const [assets, setAssets] = useState([]);
+//     const [components, setComponents] = useState([]);
+//     const [reports, setReports] = useState([]);
+//     const [selectedAsset, setSelectedAsset] = useState(null);
+//     const [loading, setLoading] = useState(true);
+//     const [selectedYear, setSelectedYear] = useState('all');
+
+//     const navigate = useNavigate();
+
+//     useEffect(() => {
+//         const fetchData = async () => {
+//             try {
+//                 setLoading(true);
+//                 const assetsRes = await axios.get(`${config.baseApi}/assets/get-all-assets`);
+//                 const assetsData = assetsRes.data || [];
+//                 const assetsWithComponents = assetsData.filter(asset => asset.has_components === '1');
+//                 setAssets(assetsWithComponents);
+//                 const componentsRes = await axios.get(`${config.baseApi}/assets/get-all-components`);
+//                 const componentsData = componentsRes.data || [];
+//                 setComponents(componentsData);
+//                 const reportRes = await axios.get(`${config.baseApi}/assetsAnalysis/get-all-submitted-assets`);
+//                 const reportData = reportRes.data || [];
+//                 setReports(reportData);
+//                 if (assetsWithComponents.length > 0) {
+//                     setSelectedAsset(assetsWithComponents[0]);
+//                 }
+//             } catch (err) {
+//                 console.error('Unable to fetch asset data', err);
+//             } finally {
+//                 setLoading(false);
+//             }
+//         }
+//         fetchData();
+//     }, []);
+
+//     const getAvailableYears = () => {
+//         if (!selectedAsset) return [];
+//         const assetReports = reports.filter(report => report.asset_id === selectedAsset.asset_id);
+//         const years = new Set();
+//         assetReports.forEach(report => {
+//             if (report.analysis_date) {
+//                 const year = new Date(report.analysis_date).getFullYear();
+//                 years.add(year);
+//             }
+//         });
+//         return Array.from(years).sort((a, b) => b - a);
+//     };
+
+//     const getAssetComponents = () => {
+//         if (!selectedAsset) return [];
+//         return components.filter(component => component.asset_id === selectedAsset.asset_id);
+//     };
+
+//     const getAssetReports = () => {
+//         if (!selectedAsset) return [];
+//         let filteredReports = reports.filter(report => report.asset_id === selectedAsset.asset_id);
+//         if (selectedYear !== 'all') {
+//             filteredReports = filteredReports.filter(report => {
+//                 if (!report.analysis_date) return false;
+//                 const reportYear = new Date(report.analysis_date).getFullYear();
+//                 return reportYear === parseInt(selectedYear);
+//             });
+//         }
+//         return filteredReports.sort((a, b) => new Date(b.analysis_date) - new Date(a.analysis_date));
+//     };
+
+//     const getComponentDetails = (componentId) => {
+//         return components.find(component => component.asset_component_id === componentId);
+//     };
+
+//     const getAverages = () => {
+//         const assetReports = getAssetReports();
+//         if (assetReports.length === 0) {
+//             return { avgAssetRunningHours: 0, avgOilRunningHours: 0, reportCount: 0 };
+//         }
+//         const totalAssetRunningHours = assetReports.reduce((sum, report) => sum + (parseFloat(report.asset_running_hours) || 0), 0);
+//         const totalOilRunningHours = assetReports.reduce((sum, report) => sum + (parseFloat(report.oil_running_hours) || 0), 0);
+//         return {
+//             avgAssetRunningHours: (totalAssetRunningHours / assetReports.length).toFixed(2),
+//             avgOilRunningHours: (totalOilRunningHours / assetReports.length).toFixed(2),
+//             reportCount: assetReports.length
+//         };
+//     };
+
+//     const handleAssetChange = (event) => {
+//         const assetId = event.target.value;
+//         const asset = assets.find(a => a.asset_id === assetId);
+//         setSelectedAsset(asset);
+//         setSelectedYear('all');
+//     };
+
+//     const handleYearChange = (event) => {
+//         setSelectedYear(event.target.value);
+//     };
+
+//     const formatDate = (dateString) => {
+//         if (!dateString) return 'N/A';
+//         return new Date(dateString).toLocaleDateString('en-US', {
+//             year: 'numeric',
+//             month: 'short',
+//             day: 'numeric'
+//         });
+//     };
+
+//     if (loading) {
+//         return (
+//             <div style={{
+//                 background: 'radial-gradient(circle at 10% 30%, #254252 0%, #171C2D 100%)',
+//                 minHeight: '100vh',
+//                 display: 'flex',
+//                 justifyContent: 'center',
+//                 alignItems: 'center',
+//                 color: 'white',
+//                 fontSize: '20px'
+//             }}>
+//                 Loading assets...
+//             </div>
+//         );
+//     }
+
+//     const assetComponents = getAssetComponents();
+//     const assetReports = getAssetReports();
+//     const averages = getAverages();
+//     const availableYears = getAvailableYears();
+
+//     const handleAssetView = async (id) => {
+//         navigate(`/view-asset?id=${id}`)
+//     }
+
+//     return (
+//         <div style={{
+//             background: 'radial-gradient(circle at 10% 30%, #254252 0%, #171C2D 100%)',
+//             minHeight: '100vh',
+//             position: 'relative',
+//             overflow: 'hidden',
+//             paddingTop: '50px'
+//         }}>
+//             {/* Animated background elements */}
+//             <div style={{
+//                 position: 'absolute', width: '600px', height: '600px', borderRadius: '50%',
+//                 background: 'rgba(255, 255, 255, 0.05)', top: '-200px', right: '-200px',
+//                 animation: 'float 25s infinite ease-in-out', zIndex: 1
+//             }} />
+//             <div style={{
+//                 position: 'absolute', width: '400px', height: '400px', borderRadius: '50%',
+//                 background: 'rgba(255, 255, 255, 0.05)', bottom: '-150px', left: '-150px',
+//                 animation: 'float 20s infinite ease-in-out reverse', zIndex: 1
+//             }} />
+//             <div style={{
+//                 position: 'absolute', width: '300px', height: '300px', borderRadius: '50%',
+//                 background: 'rgba(255, 255, 255, 0.03)', top: '50%', left: '20%',
+//                 animation: 'float 18s infinite ease-in-out', zIndex: 1
+//             }} />
+
+
+
+//             {/* Dashboard Header */}
+//             <div style={{
+//                 position: 'relative',
+//                 zIndex: 2,
+//             }}>
+//                 <div style={{
+//                     maxWidth: '1400px',
+//                     margin: '0 auto',
+//                     padding: '24px 32px',
+//                     display: 'flex',
+//                     justifyContent: 'space-between',
+//                     alignItems: 'center',
+//                     flexWrap: 'wrap',
+//                     gap: '16px'
+//                 }}>
+//                     <div>
+//                         <h1 style={{
+//                             fontSize: '2.8rem', fontWeight: '700', color: '#EAB56F',
+//                             marginBottom: '8px', letterSpacing: '-0.5px'
+//                         }}>
+//                             Asset Dashboard
+//                         </h1>
+//                         <p style={{
+//                             color: 'rgba(255, 255, 255, 0.6)',
+//                             fontSize: '14px',
+//                             margin: '8px 0 0 0'
+//                         }}>
+//                             Monitor asset performance and analysis reports
+//                         </p>
+//                     </div>
+
+//                     {/* Asset Selector Card */}
+//                     <div style={{
+//                         display: 'flex',
+//                         gap: '16px',
+//                         alignItems: 'flex-end'
+//                     }}>
+//                         <div>
+//                             <label style={{
+//                                 color: 'rgba(255, 187, 0, 0.7)',
+//                                 fontSize: '12px',
+//                                 fontWeight: '500',
+//                                 textTransform: 'uppercase',
+//                                 letterSpacing: '0.5px',
+//                                 display: 'block',
+//                                 marginBottom: '6px'
+//                             }}>
+//                                 Select Asset
+//                             </label>
+//                             <select
+//                                 value={selectedAsset?.asset_id || ''}
+//                                 onChange={handleAssetChange}
+//                                 style={{
+//                                     padding: '10px 32px 10px 16px',
+//                                     borderRadius: '8px',
+//                                     border: '2px solid rgba(255, 255, 255, 0.2)',
+//                                     background: 'rgba(0, 0, 0, 0.4)',
+//                                     color: 'white',
+//                                     fontSize: '14px',
+//                                     cursor: 'pointer',
+//                                     minWidth: '240px',
+//                                     outline: 'none'
+//                                 }}
+//                                 onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+//                                 onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)'}
+//                             >
+//                                 {assets.map(asset => (
+//                                     <option key={asset.asset_id} value={asset.asset_id} style={{ background: '#1a2a35' }}>
+//                                         {asset.asset_name}
+//                                     </option>
+//                                 ))}
+//                             </select>
+//                         </div>
+
+//                         {selectedAsset && availableYears.length > 0 && (
+//                             <div>
+//                                 <label style={{
+//                                     color: 'rgba(255, 187, 0, 0.7)',
+//                                     fontSize: '12px',
+//                                     fontWeight: '500',
+//                                     textTransform: 'uppercase',
+//                                     letterSpacing: '0.5px',
+//                                     display: 'block',
+//                                     marginBottom: '6px'
+//                                 }}>
+//                                     Filter by Year
+//                                 </label>
+//                                 <select
+//                                     value={selectedYear}
+//                                     onChange={handleYearChange}
+//                                     style={{
+//                                         padding: '10px 32px 10px 16px',
+//                                         borderRadius: '8px',
+//                                         border: '2px solid rgba(255, 255, 255, 0.2)',
+//                                         background: 'rgba(0, 0, 0, 0.4)',
+//                                         color: 'white',
+//                                         fontSize: '14px',
+//                                         cursor: 'pointer',
+//                                         minWidth: '140px',
+//                                         outline: 'none'
+//                                     }}
+//                                     onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+//                                     onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)'}
+//                                 >
+//                                     <option value="all" style={{ background: '#1a2a35' }}>All Years</option>
+//                                     {availableYears.map(year => (
+//                                         <option key={year} value={year} style={{ background: '#1a2a35' }}>
+//                                             {year}
+//                                         </option>
+//                                     ))}
+//                                 </select>
+//                             </div>
+//                         )}
+//                     </div>
+//                 </div>
+//             </div>
+
+//             {/* Main Dashboard Content */}
+//             <div style={{ position: 'relative', zIndex: 2, maxWidth: '1400px', margin: '0 auto', padding: '32px' }}>
+
+//                 {/* KPI Cards Row */}
+//                 {selectedAsset && (
+//                     <div style={{
+//                         display: 'grid',
+//                         gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+//                         gap: '24px',
+//                         marginBottom: '32px',
+//                         animation: 'slideIn 0.4s ease-out'
+//                     }}>
+//                         {/* Asset Info Card */}
+//                         <div style={{
+//                             background: 'rgba(9, 255, 0, 0.08)',
+//                             backdropFilter: 'blur(12px)',
+//                             borderRadius: '16px',
+//                             border: '2px solid rgb(4, 105, 1)',
+//                             padding: '20px',
+//                             transition: 'transform 0.2s, box-shadow 0.2s',
+//                             cursor: 'pointer',
+//                             position: 'relative'
+//                         }}>
+//                             {/* Expand Icon - Top Right */}
+//                             <div style={{
+//                                 position: 'absolute',
+//                                 top: '12px',
+//                                 right: '12px',
+//                                 cursor: 'pointer',
+//                                 zIndex: 1
+//                             }}>
+//                                 <FeatherIcon icon="external-link" color={'#0cc225'} size={18} onClick={() => handleAssetView(selectedAsset.asset_id)} />
+//                             </div>
+
+//                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+//                                 <div style={{
+//                                     width: '40px',
+//                                     height: '40px',
+//                                     borderRadius: '10px',
+//                                     background: 'rgba(76, 175, 80, 0.2)',
+//                                     display: 'flex',
+//                                     alignItems: 'center',
+//                                     justifyContent: 'center'
+//                                 }}>
+//                                     <FeatherIcon icon="box" color={'#0cc225'} />
+//                                 </div>
+//                                 <div>
+//                                     <p style={{ color: 'rgba(0, 255, 42, 0.6)', fontSize: '13px', margin: 0 }}>Asset Name</p>
+//                                     <p style={{ color: '#9fe2af', fontSize: '18px', fontWeight: '600', margin: 0 }}>{selectedAsset.asset_name}</p>
+//                                 </div>
+//                             </div>
+//                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+//                                 <div>
+//                                     <p style={{ color: 'rgba(0, 255, 42, 0.6)', fontSize: '11px', marginBottom: '4px' }}>CATEGORY</p>
+//                                     <p style={{ color: '#9fe2af', fontSize: '13px', margin: 0 }}>{selectedAsset.asset_category || 'N/A'}</p>
+//                                 </div>
+//                                 <div>
+//                                     <p style={{ color: 'rgba(0, 255, 42, 0.6)', fontSize: '11px', marginBottom: '4px' }}>TYPE</p>
+//                                     <p style={{ color: '#9fe2af', fontSize: '13px', margin: 0 }}>{selectedAsset.asset_type || 'N/A'}</p>
+//                                 </div>
+//                                 <div>
+//                                     <p style={{ color: 'rgba(0, 255, 42, 0.6)', fontSize: '11px', marginBottom: '4px' }}>LOCATION</p>
+//                                     <p style={{ color: '#9fe2af', fontSize: '13px', margin: 0 }}>{selectedAsset.asset_location || 'N/A'}</p>
+//                                 </div>
+//                                 <div>
+//                                     <p style={{ color: 'rgba(0, 255, 42, 0.6)', fontSize: '11px', marginBottom: '4px' }}>COMMISSIONED</p>
+//                                     <p style={{ color: '#9fe2af', fontSize: '13px', margin: 0 }}>{selectedAsset.date_commisioning || 'N/A'}</p>
+//                                 </div>
+//                             </div>
+//                         </div>
+
+//                         {/* Average Running Hours Cards */}
+//                         <div style={{
+//                             background: 'rgba(0, 68, 255, 0.08)',
+//                             backdropFilter: 'blur(12px)',
+//                             borderRadius: '16px',
+//                             border: '2px solid rgb(56, 70, 196)',
+//                             padding: '20px',
+//                             transition: 'transform 0.2s, box-shadow 0.2s'
+//                         }}>
+//                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+//                                 {/* Feather Logo - Left side */}
+//                                 <div style={{
+//                                     width: '80px',
+//                                     height: '80px',
+//                                     borderRadius: '10px',
+//                                     background: 'rgba(33, 150, 243, 0.2)',
+//                                     display: 'flex',
+//                                     alignItems: 'center',
+//                                     justifyContent: 'center'
+//                                 }}>
+//                                     <FeatherIcon icon="clock" color={'#5779e9'} style={{ width: '40px', height: '40px' }} />
+//                                 </div>
+
+//                                 {/* Text Column - Right side, aligned text end */}
+//                                 <div style={{ textAlign: 'right' }}>
+//                                     <p style={{ color: 'rgb(62, 123, 255)', fontSize: '1rem', margin: 0, fontWeight: '800' }}>
+//                                         Avg Asset Running Hours
+//                                     </p>
+//                                     <p style={{ color: '#2196F3', fontSize: '32px', fontWeight: '800', margin: 0 }}>
+//                                         {averages.avgAssetRunningHours}
+//                                     </p>
+//                                     <p style={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: '1rem', margin: 0, marginTop: '55px' }}>
+//                                         Based on {averages.reportCount} report{averages.reportCount !== 1 ? 's' : ''}
+//                                     </p>
+//                                 </div>
+//                             </div>
+
+
+//                         </div>
+//                         <div style={{
+//                             background: 'rgba(255, 145, 0, 0.19)',
+//                             backdropFilter: 'blur(12px)',
+//                             borderRadius: '16px',
+//                             border: '2px solid rgba(172, 92, 0, 0.77)',
+//                             padding: '20px',
+//                             transition: 'transform 0.2s, box-shadow 0.2s'
+//                         }}>
+//                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+//                                 {/* Feather Logo - Left side */}
+//                                 <div style={{
+//                                     width: '80px',
+//                                     height: '80px',
+//                                     borderRadius: '10px',
+//                                     background: 'rgba(255, 152, 0, 0.2)',
+//                                     display: 'flex',
+//                                     alignItems: 'center',
+//                                     justifyContent: 'center'
+//                                 }}>
+//                                     <FeatherIcon icon="droplet" size={20} color={'#ffa835'} style={{ width: '40px', height: '40px' }} />
+//                                 </div>
+
+//                                 {/* Text Column - Right side, aligned text end */}
+//                                 <div style={{ textAlign: 'right' }}>
+//                                     <p style={{ color: 'rgba(255, 172, 47, 0.6)', fontSize: '1rem', margin: 0, fontWeight: '800' }}>
+//                                         Avg Oil Running Hours
+//                                     </p>
+//                                     <p style={{ color: '#FF9800', fontSize: '32px', fontWeight: '800', margin: 0 }}>
+//                                         {averages.avgOilRunningHours}
+//                                     </p>
+//                                     <p style={{ color: 'rgba(255, 255, 255, 0.4)', fontSize: '1rem', margin: 0, marginTop: '55px' }}>
+//                                         hours since last change
+//                                     </p>
+//                                 </div>
+//                             </div>
+
+
+//                         </div>
+//                     </div>
+//                 )}
+
+//                 {/* Two Column Layout for Reports and Components */}
+//                 <div style={{
+//                     display: 'grid',
+//                     gridTemplateColumns: '1fr 1fr',
+//                     gap: '32px',
+//                     animation: 'slideIn 0.5s ease-out'
+//                 }}>
+//                     {/* Reports Section */}
+//                     {selectedAsset && (
+//                         <div style={{
+//                             background: 'rgba(255, 255, 255, 0.05)',
+//                             backdropFilter: 'blur(12px)',
+//                             borderRadius: '16px',
+//                             border: '1px solid rgba(255, 255, 255, 0.1)',
+//                             overflow: 'hidden'
+//                         }}>
+//                             <div style={{
+//                                 padding: '20px 24px',
+//                                 borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+//                                 background: 'rgba(0, 0, 0, 0.2)'
+//                             }}>
+//                                 <h2 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: 0 }}>
+//                                     Analysis Reports
+//                                     <span style={{
+//                                         marginLeft: '10px',
+//                                         background: '#2196F3',
+//                                         padding: '2px 8px',
+//                                         borderRadius: '20px',
+//                                         fontSize: '12px',
+//                                         fontWeight: '500'
+//                                     }}>
+//                                         {assetReports.length}
+//                                     </span>
+//                                 </h2>
+//                             </div>
+//                             <div style={{ maxHeight: '500px', overflowY: 'auto', padding: '16px' }}>
+//                                 {assetReports.length > 0 ? (
+//                                     <div style={{ display: 'grid', gap: '12px' }}>
+//                                         {assetReports.map((report) => {
+//                                             const componentDetails = getComponentDetails(report.asset_component_id);
+//                                             return (
+//                                                 <div key={report.asset_analysis_id} style={{
+//                                                     background: 'rgba(0, 0, 0, 0.3)',
+//                                                     borderRadius: '12px',
+//                                                     padding: '16px',
+//                                                     borderLeft: `3px solid ${componentDetails ? '#4CAF50' : '#FF9800'}`
+//                                                 }}>
+//                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+//                                                         <div>
+//                                                             <p style={{ color: '#4CAF50', fontSize: '12px', fontWeight: '600', marginBottom: '4px' }}>
+//                                                                 Report #{report.asset_analysis_id}
+//                                                             </p>
+//                                                             <p style={{ color: 'white', fontSize: '15px', fontWeight: '500', margin: 0 }}>
+//                                                                 {componentDetails?.asset_component_name || 'Unknown Component'}
+//                                                             </p>
+//                                                         </div>
+//                                                         <p style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '12px', margin: 0 }}>
+//                                                             {formatDate(report.analysis_date)}
+//                                                         </p>
+//                                                     </div>
+//                                                     <div style={{ display: 'flex', gap: '24px' }}>
+//                                                         <div>
+//                                                             <p style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '11px', marginBottom: '2px' }}>Asset Hours</p>
+//                                                             <p style={{ color: 'white', fontSize: '14px', fontWeight: '500', margin: 0 }}>
+//                                                                 {report.asset_running_hours || 0} hrs
+//                                                             </p>
+//                                                         </div>
+//                                                         <div>
+//                                                             <p style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '11px', marginBottom: '2px' }}>Oil Hours</p>
+//                                                             <p style={{ color: '#FF9800', fontSize: '14px', fontWeight: '500', margin: 0 }}>
+//                                                                 {report.oil_running_hours || 0} hrs
+//                                                             </p>
+//                                                         </div>
+//                                                     </div>
+//                                                 </div>
+//                                             );
+//                                         })}
+//                                     </div>
+//                                 ) : (
+//                                     <div style={{ textAlign: 'center', padding: '60px 20px', color: 'rgba(255, 255, 255, 0.5)' }}>
+//                                         No reports available
+//                                     </div>
+//                                 )}
+//                             </div>
+//                         </div>
+//                     )}
+
+//                     {/* Components Section */}
+//                     {selectedAsset && (
+//                         <div style={{
+//                             background: 'rgba(255, 255, 255, 0.05)',
+//                             backdropFilter: 'blur(12px)',
+//                             borderRadius: '16px',
+//                             border: '1px solid rgba(255, 255, 255, 0.1)',
+//                             overflow: 'hidden'
+//                         }}>
+//                             <div style={{
+//                                 padding: '20px 24px',
+//                                 borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+//                                 background: 'rgba(0, 0, 0, 0.2)'
+//                             }}>
+//                                 <h2 style={{ color: 'white', fontSize: '18px', fontWeight: '600', margin: 0 }}>
+//                                     Components
+//                                     <span style={{
+//                                         marginLeft: '10px',
+//                                         background: '#4CAF50',
+//                                         padding: '2px 8px',
+//                                         borderRadius: '20px',
+//                                         fontSize: '12px',
+//                                         fontWeight: '500'
+//                                     }}>
+//                                         {assetComponents.length}
+//                                     </span>
+//                                 </h2>
+//                             </div>
+//                             <div style={{ maxHeight: '500px', overflowY: 'auto', padding: '16px' }}>
+//                                 {assetComponents.length > 0 ? (
+//                                     <div style={{ display: 'grid', gap: '12px' }}>
+//                                         {assetComponents.map((component, index) => (
+//                                             <div key={component.asset_component_id} style={{
+//                                                 background: 'rgba(0, 0, 0, 0.3)',
+//                                                 borderRadius: '12px',
+//                                                 padding: '16px'
+//                                             }}>
+//                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+//                                                     <div style={{
+//                                                         width: '32px',
+//                                                         height: '32px',
+//                                                         borderRadius: '8px',
+//                                                         background: 'rgba(76, 175, 80, 0.2)',
+//                                                         display: 'flex',
+//                                                         alignItems: 'center',
+//                                                         justifyContent: 'center',
+//                                                         fontSize: '14px',
+//                                                         fontWeight: '600',
+//                                                         color: '#4CAF50'
+//                                                     }}>
+//                                                         {index + 1}
+//                                                     </div>
+//                                                     <div>
+//                                                         <p style={{ color: 'white', fontSize: '15px', fontWeight: '500', margin: 0 }}>
+//                                                             {component.asset_component_name}
+//                                                         </p>
+//                                                         <p style={{ color: '#4CAF50', fontSize: '11px', margin: '4px 0 0 0' }}>
+//                                                             ID: {component.asset_component_id}
+//                                                         </p>
+//                                                     </div>
+//                                                 </div>
+//                                                 <div style={{ display: 'flex', gap: '24px', marginLeft: '44px' }}>
+//                                                     <div>
+//                                                         <p style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '11px', marginBottom: '2px' }}>Type</p>
+//                                                         <p style={{ color: 'white', fontSize: '13px', margin: 0 }}>{component.asset_component_type || 'N/A'}</p>
+//                                                     </div>
+//                                                     <div>
+//                                                         <p style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '11px', marginBottom: '2px' }}>Created</p>
+//                                                         <p style={{ color: 'white', fontSize: '13px', margin: 0 }}>
+//                                                             {new Date(component.created_at).toLocaleDateString()}
+//                                                         </p>
+//                                                     </div>
+//                                                 </div>
+//                                             </div>
+//                                         ))}
+//                                     </div>
+//                                 ) : (
+//                                     <div style={{ textAlign: 'center', padding: '60px 20px', color: 'rgba(255, 255, 255, 0.5)' }}>
+//                                         No components found
+//                                     </div>
+//                                 )}
+//                             </div>
+//                         </div>
+//                     )}
+//                 </div>
+//             </div>
+
+//             <style>
+//                 {`
+//                     @keyframes float {
+//                         0%, 100% { transform: translate(0, 0) rotate(0deg); }
+//                         33% { transform: translate(50px, -50px) rotate(120deg); }
+//                         66% { transform: translate(-30px, 30px) rotate(240deg); }
+//                     }
+//                     @keyframes pulse {
+//                         0%, 100% { opacity: 0.6; }
+//                         50% { opacity: 1; }
+//                     }
+//                     @keyframes slideIn {
+//                         from { opacity: 0; transform: translateY(20px); }
+//                         to { opacity: 1; transform: translateY(0); }
+//                     }
+
+//                 `}
+//             </style>
+//         </div>
+//     );
+// }
+
+
 import { useEffect, useState, useCallback } from "react";
 import axios from 'axios';
 import config from 'config';
@@ -931,9 +1561,9 @@ export default function AssetDashboard() {
             }} />
 
             {/* Dashboard Header */}
-            <div style={{ position: 'relative', zIndex: 2 }}>
+            <div style={{ position: 'relative', zIndex: 2, maxWidth: '2000px', }}>
                 <div style={{
-                    maxWidth: '1400px',
+
                     margin: '0 auto',
                     padding: '24px 32px',
                     display: 'flex',
@@ -1024,7 +1654,7 @@ export default function AssetDashboard() {
 
 
             {/* Main Dashboard Content */}
-            <div style={{ position: 'relative', zIndex: 2, maxWidth: '1400px', margin: '0 auto', padding: '32px' }}>
+            <div style={{ position: 'relative', zIndex: 2, maxWidth: '2000px', margin: '0 auto', padding: '32px' }}>
 
 
 
@@ -1355,7 +1985,7 @@ export default function AssetDashboard() {
                 {selectedReport && (
                     <div style={{ border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '16px' }}>
                         <div style={{ fontSize: '18px', fontWeight: '600', color: 'white', padding: '20px 24px', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '16px 16px 0px 0px ', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', }}>
-                            Test Results
+                            Trend Key Results
                         </div>
                         <div style={{ background: 'rgba(255, 255, 255, 0.05)', padding: 'clamp(16px, 4vw, 25px)', borderRadius: '0px 0px 16px 16px', border: '1px solid rgba(255, 255, 255, 0.1)', }}>
                             <div style={{ borderBottom: '1px solid rgba(0,0,0,0.1)' }}>

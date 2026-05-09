@@ -304,50 +304,101 @@ router.post('/register-email', async function (req, res, next) {
 router.post('/update-user', async (req, res, next) => {
   const currentTimestamp = new Date();
   const {
-    user_id,
+    id_master,
     emp_FirstName,
     emp_LastName,
     user_name,
     emp_email,
-    emp_tier,
-    emp_phone,
     emp_role,
-    emp_location,
-    emp_department,
     emp_position,
     updated_by
   } = req.body;
 
   try {
-    await knex('users_master').where({ user_id: user_id }).update({
+    await knex('users_master').where({ id_master: id_master }).update({
       emp_FirstName: emp_FirstName,
       emp_LastName: emp_LastName,
       user_name: user_name,
       emp_email: emp_email,
-      emp_tier: emp_tier,
-      emp_phone: emp_phone,
       emp_role: emp_role,
-      emp_location: emp_location,
-      emp_department: emp_department,
       emp_position: emp_position,
       updated_at: currentTimestamp,
       updated_by: updated_by
     })
 
     await knex('users_logs').insert({
-      user_id: user_id,
+      user_id: id_master,
       changes_made: `User details were updated for ${user_name} by ${updated_by}`,
       created_at: currentTimestamp,
       created_by: updated_by
     })
 
-    console.log(`User was updated ${user_name} with ID ${user_id} `);
+    console.log(`User was updated ${user_name} with ID ${id_master} `);
     res.status(200).json({ message: "User updated successfully" });
   } catch (err) {
     console.log("INTERNAL ERROR: ", err)
   }
 
 })
+
+router.post('/reset-password', async (req, res) => {
+  try {
+    const {
+      id_master,
+      updated_by,
+      user_name
+    } = req.body;
+    const currentTimestamp = new Date();
+
+    await knex('users_master').where({ id_master: id_master }).update({
+      pass_word: '123456',
+      updated_by: updated_by,
+      updated_at: currentTimestamp
+    });
+
+    await knex('users_logs').insert({
+      user_id: id_master,
+      changes_made: `User ${updated_by}, updated password of ${user_name} to default password.`,
+      created_at: currentTimestamp,
+      created_by: updated_by
+    })
+
+    res.status(200).json({ message: "User password reset successfully" });
+
+  } catch (err) {
+    console.log('ERROR RESETTING PASSWORD: ', err)
+  }
+})
+
+router.post('/deactivate-user', async (req, res) => {
+  try {
+    const {
+      id_master,
+      user_name,
+      updated_by,
+    } = req.body;
+    const currentTimestamp = new Date();
+
+    await knex('users_master').where({ id_master: id_master }).update({
+      is_active: '0',
+      updated_by: updated_by,
+      updated_at: currentTimestamp
+    });
+
+    await knex('users_logs').insert({
+      user_id: id_master,
+      changes_made: `User ${updated_by}, updated password of ${user_name} to default password.`,
+      created_at: currentTimestamp,
+      created_by: updated_by
+    })
+
+    res.status(200).json({ message: "User password reset successfully" });
+
+  } catch (err) {
+    console.log('ERROR RESETTING PASSWORD: ', err)
+  }
+})
+
 
 //Edit Password
 router.post('/edit-password', async (req, res) => {
@@ -373,17 +424,6 @@ router.post('/edit-password', async (req, res) => {
     console.log('INTERNAL ERROR: ', err)
   }
 })
-//Get all users
-router.get('/get-all-users', async (req, res, next) => {
-  try {
-    const getAllUsers = await knex('users_master').select('*');
-    res.json(getAllUsers)
-    console.log('Triggered /get-all-users')
-  } catch (err) {
-    console.log('Unable to fetch all users');
-
-  }
-})
 
 //Get User by their username
 router.get('/get-by-username', async (req, res, next) => {
@@ -405,7 +445,7 @@ router.get('/get-by-id', async (req, res, next) => {
   try {
     const getCreatedBy = await Users1.findAll({
       where: {
-        user_id: req.query.user_id
+        id_master: req.query.id
       }
     })
     res.json(getCreatedBy[0])

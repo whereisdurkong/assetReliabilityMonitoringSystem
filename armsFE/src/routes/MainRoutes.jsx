@@ -6,7 +6,6 @@ import SetupAllOptions from '../views/setup/setup_all_options';
 import SetupOptionView from '../views/setup/setup_option_view';
 
 //SAMPLE PAGES
-const DashboardSales = lazy(() => import('../views/dashboard/DashSales/index'));
 const Sample = lazy(() => import('../views/sample'));
 const Typography = lazy(() => import('../views/ui-elements/basic/BasicTypography'));
 const Color = lazy(() => import('../views/ui-elements/basic/BasicColor'));
@@ -22,6 +21,10 @@ const Register = lazy(() => import('../views/auth/register'));
 const AddAsset = lazy(() => import('../views/assets/add-assets'));
 const AllAssets = lazy(() => import('../views/assets/all-assets'));
 const ViewAsset = lazy(() => import('../views/assets/view-asset'));
+const AssetDashboard = lazy(() => import('../views/assets/assetdashboard'))
+
+const AssetMonitoring = lazy(() => import('../views/assets/assetMonitoring'));
+const AddMonitoringLog = lazy(() => import('../views/assets/add-assetMonitoring'))
 
 const AllSubmitAssets = lazy(() => import('../views/oil-analysis/all-submit-assets'));
 const SubmitAsset = lazy(() => import('../views/oil-analysis/submit-asset'));
@@ -29,8 +32,12 @@ const SubmitAsset = lazy(() => import('../views/oil-analysis/submit-asset'));
 const AssetSetup = lazy(() => import('../views/setup/setup_options'))
 const TrivectorSetup = lazy(() => import('../views/setup/setup_option_trivector'))
 
+const AllUsers = lazy(() => import('../views/auth/allusers'))
+const ViewUser = lazy(() => import('../views/auth/view-user'))
 
 import ViewSubmittedAsset from '../views/oil-analysis/view-submitted-asset';
+
+const DataAnalytic = lazy(() => import('../views/dashboard/dashboard'))
 const Test = lazy(() => import('../views/oil-analysis/test'))
 
 const Access = () => {
@@ -48,10 +55,6 @@ const MainRoutes = {
   path: '/',
   element: <Access />,
   children: [
-    {
-      path: '/dashboard',
-      element: <DashboardSales />
-    },
     {
       path: '/typography',
       element: <Typography />
@@ -77,6 +80,14 @@ const MainRoutes = {
       element: <Register />
     },
     {
+      path: '/all-users',
+      element: <AllUsers />
+    },
+    {
+      path: '/view-user',
+      element: <ViewUser />
+    },
+    {
       path: '/sample-page',
       element: <Sample />
     },
@@ -93,6 +104,25 @@ const MainRoutes = {
     {
       path: '/view-asset',
       element: <ViewAsset />
+    },
+
+    {
+      path: '/asset-dashboard',
+      element: <AssetDashboard />
+    },
+
+    {
+      path: '/dashboard',
+      element: <DataAnalytic />
+    },
+
+    {
+      path: '/asset-monitoring',
+      element: <AssetMonitoring />
+    },
+    {
+      path: '/add-monitoring-log',
+      element: <AddMonitoringLog />
     },
     {
       path: '/add-A-R',

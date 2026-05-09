@@ -166,42 +166,81 @@ export default function SubmitAsset() {
         return true;
     };
 
+    // Helper function to clean numeric strings (remove commas, symbols, keep only digits, decimal, negative)
+    const cleanNumericString = (value) => {
+        if (!value || value === '') return '';
+        // Convert to string, remove commas and any non-numeric except decimal and minus
+        const cleaned = String(value).replace(/[^\d.-]/g, '');
+        // Handle multiple decimals (keep first only)
+        const parts = cleaned.split('.');
+        if (parts.length > 2) {
+            return parts[0] + '.' + parts.slice(1).join('');
+        }
+        return cleaned;
+    };
+
     const validateStep3 = () => {
+        // Clean recommendation first (not numeric, just trim)
         if (!formData.recommendation?.trim()) {
             showAlertMessage('error', 'Empty Fields', 'Recommendation is required');
             return false;
         }
 
+        // Helper to clean & validate a field
+        const validateField = (fieldName, displayName = null) => {
+            const rawValue = formData[fieldName];
+            const cleaned = cleanNumericString(rawValue);
+            if (!cleaned) {
+                showAlertMessage('error', 'Invalid or Empty Field', `${displayName || fieldName} is required and must contain a valid number`);
+                return false;
+            }
+            // Optionally update the formData with cleaned value (uncomment if needed)
+            // setFormData(prev => ({ ...prev, [fieldName]: cleaned }));
+            return true;
+        };
+
         // Rotating Machine validation
         if (rotatingMachine) {
-            const requiredFields = ['iron', 'chrome', 'nickel', 'aluminum', 'lead', 'copper', 'tin', 'titanium', 'silver', 'antimony', 'cadmium', 'manganese', 'fatigue20', 'nonMetallic20', 'largeFe', 'feWearSeverity', 'totalFe100', 'silicon', 'sodium', 'vanadium', 'potassium', 'lithium', 'iso4406_4', 'iso4406_6', 'iso4406_14', 'cnts4', 'cnts6', 'cnts14', 'particles5_15', 'particles15_25', 'particles25_50', 'particles50_100', 'particles100', 'cutting20', 'sliding20', 'totalWater', 'bubbles', 'waterContent', 'largeFePercent', 'molybdenum', 'calcium', 'magnesium', 'phosphorus', 'zinc', 'barium', 'boron', 'tan', 'oxidation', 'viscosity40', 'viscosity100', 'fluidIntegrity'];
+            const requiredFields = [
+                'iron', 'chrome', 'nickel', 'aluminum', 'lead', 'copper', 'tin', 'titanium', 'silver',
+                'antimony', 'cadmium', 'manganese', 'fatigue20', 'nonMetallic20', 'largeFe', 'feWearSeverity',
+                'totalFe100', 'silicon', 'sodium', 'vanadium', 'potassium', 'lithium', 'iso4406_4',
+                'iso4406_6', 'iso4406_14', 'cnts4', 'cnts6', 'cnts14', 'particles5_15', 'particles15_25',
+                'particles25_50', 'particles50_100', 'particles100', 'cutting20', 'sliding20', 'totalWater',
+                'bubbles', 'waterContent', 'largeFePercent', 'molybdenum', 'calcium', 'magnesium',
+                'phosphorus', 'zinc', 'barium', 'boron', 'tan', 'oxidation', 'viscosity40', 'viscosity100',
+                'fluidIntegrity'
+            ];
             for (const field of requiredFields) {
-                if (!formData[field]) {
-                    showAlertMessage('error', 'Empty Fields', `Missing required field: ${field}`);
-                    return false;
-                }
+                if (!validateField(field, field)) return false;
             }
         }
 
         // Mobile Engine validation
         if (mobileEngine) {
-            const requiredFields = ['iron', 'chrome', 'nickel', 'aluminum', 'lead', 'copper', 'tin', 'titanium', 'silver', 'antimony', 'cadmium', 'manganese', 'silicon', 'sodium', 'vanadium', 'potassium', 'lithium', 'glycol', 'bubbles', 'water', 'sootPercent', 'biodieselFuelDilution', 'molybdenum', 'calcium', 'magnesium', 'phosphorus', 'zinc', 'barium', 'boron', 'tbn', 'oxidation', 'nitration', 'sulfation', 'viscosity40', 'viscosity100', 'antiwear', 'fluidIntegrity'];
+            const requiredFields = [
+                'iron', 'chrome', 'nickel', 'aluminum', 'lead', 'copper', 'tin', 'titanium', 'silver',
+                'antimony', 'cadmium', 'manganese', 'silicon', 'sodium', 'vanadium', 'potassium', 'lithium',
+                'glycol', 'bubbles', 'water', 'sootPercent', 'biodieselFuelDilution', 'molybdenum', 'calcium',
+                'magnesium', 'phosphorus', 'zinc', 'barium', 'boron', 'tbn', 'oxidation', 'nitration',
+                'sulfation', 'viscosity40', 'viscosity100', 'antiwear', 'fluidIntegrity'
+            ];
             for (const field of requiredFields) {
-                if (!formData[field]) {
-                    showAlertMessage('error', 'Empty Fields', `Missing required field: ${field}`);
-                    return false;
-                }
+                if (!validateField(field, field)) return false;
             }
         }
 
         // Stationary Engine validation
         if (stationaryEngine) {
-            const requiredFields = ['iron', 'chrome', 'nickel', 'aluminum', 'lead', 'copper', 'tin', 'titanium', 'silver', 'antimony', 'cadmium', 'manganese', 'silicon', 'sodium', 'vanadium', 'potassium', 'lithium', 'glycol', 'bubbles', 'antiwear', 'water', 'sootPercent', 'biodieselFuelDilution', 'molybdenum', 'calcium', 'magnesium', 'phosphorus', 'zinc', 'barium', 'boron', 'tbn', 'oxidation', 'nitration', 'sulfation', 'viscosity40', 'viscosity100', 'fluidIntegrity'];
+            const requiredFields = [
+                'iron', 'chrome', 'nickel', 'aluminum', 'lead', 'copper', 'tin', 'titanium', 'silver',
+                'antimony', 'cadmium', 'manganese', 'silicon', 'sodium', 'vanadium', 'potassium', 'lithium',
+                'glycol', 'bubbles', 'antiwear', 'water', 'sootPercent', 'biodieselFuelDilution', 'molybdenum',
+                'calcium', 'magnesium', 'phosphorus', 'zinc', 'barium', 'boron', 'tbn', 'oxidation',
+                'nitration', 'sulfation', 'viscosity40', 'viscosity100', 'fluidIntegrity'
+            ];
             for (const field of requiredFields) {
-                if (!formData[field]) {
-                    showAlertMessage('error', 'Empty Fields', `Missing required field: ${field}`);
-                    return false;
-                }
+                if (!validateField(field, field)) return false;
             }
         }
 
@@ -231,83 +270,165 @@ export default function SubmitAsset() {
         try {
             const oilResults = {};
 
+            // Helper to get cleaned field value
+            const getCleanedField = (fieldName) => {
+                const value = formData[fieldName];
+                const cleaned = cleanNumericString(value);
+                return cleaned === '' ? '' : cleaned;
+            };
+
             if (rotatingMachine) {
                 Object.assign(oilResults, {
-                    iron: formData.iron || '', chrome: formData.chrome || '', nickel: formData.nickel || '',
-                    aluminum: formData.aluminum || '', lead: formData.lead || '', copper: formData.copper || '',
-                    tin: formData.tin || '', titanium: formData.titanium || '', silver: formData.silver || '',
-                    antimony: formData.antimony || '', cadmium: formData.cadmium || '', manganese: formData.manganese || '',
-                    fatigue20: formData.fatigue20 || '', nonMetallic20: formData.nonMetallic20 || '',
-                    largeFe: formData.largeFe || '', feWearSeverity: formData.feWearSeverity || '',
-                    totalFe100: formData.totalFe100 || '', silicon: formData.silicon || '', sodium: formData.sodium || '',
-                    vanadium: formData.vanadium || '', potassium: formData.potassium || '', lithium: formData.lithium || '',
-                    iso4406_4: formData.iso4406_4 || '', iso4406_6: formData.iso4406_6 || '', iso4406_14: formData.iso4406_14 || '',
-                    cnts4: formData.cnts4 || '', cnts6: formData.cnts6 || '', cnts14: formData.cnts14 || '',
-                    particles5_15: formData.particles5_15 || '', particles15_25: formData.particles15_25 || '',
-                    particles25_50: formData.particles25_50 || '', particles50_100: formData.particles50_100 || '',
-                    particles100: formData.particles100 || '', cutting20: formData.cutting20 || '',
-                    sliding20: formData.sliding20 || '', totalWater: formData.totalWater || '',
-                    bubbles: formData.bubbles || '', waterContent: formData.waterContent || '',
-                    largeFePercent: formData.largeFePercent || '', molybdenum: formData.molybdenum || '',
-                    calcium: formData.calcium || '', magnesium: formData.magnesium || '', phosphorus: formData.phosphorus || '',
-                    zinc: formData.zinc || '', barium: formData.barium || '', boron: formData.boron || '',
-                    tan: formData.tan || '', oxidation: formData.oxidation || '', viscosity40: formData.viscosity40 || '',
-                    viscosity100: formData.viscosity100 || '', fluidIntegrity: formData.fluidIntegrity || '',
+                    iron: getCleanedField('iron'),
+                    chrome: getCleanedField('chrome'),
+                    nickel: getCleanedField('nickel'),
+                    aluminum: getCleanedField('aluminum'),
+                    lead: getCleanedField('lead'),
+                    copper: getCleanedField('copper'),
+                    tin: getCleanedField('tin'),
+                    titanium: getCleanedField('titanium'),
+                    silver: getCleanedField('silver'),
+                    antimony: getCleanedField('antimony'),
+                    cadmium: getCleanedField('cadmium'),
+                    manganese: getCleanedField('manganese'),
+                    fatigue20: getCleanedField('fatigue20'),
+                    nonMetallic20: getCleanedField('nonMetallic20'),
+                    largeFe: getCleanedField('largeFe'),
+                    feWearSeverity: getCleanedField('feWearSeverity'),
+                    totalFe100: getCleanedField('totalFe100'),
+                    silicon: getCleanedField('silicon'),
+                    sodium: getCleanedField('sodium'),
+                    vanadium: getCleanedField('vanadium'),
+                    potassium: getCleanedField('potassium'),
+                    lithium: getCleanedField('lithium'),
+                    iso4406_4: getCleanedField('iso4406_4'),
+                    iso4406_6: getCleanedField('iso4406_6'),
+                    iso4406_14: getCleanedField('iso4406_14'),
+                    cnts4: getCleanedField('cnts4'),
+                    cnts6: getCleanedField('cnts6'),
+                    cnts14: getCleanedField('cnts14'),
+                    particles5_15: getCleanedField('particles5_15'),
+                    particles15_25: getCleanedField('particles15_25'),
+                    particles25_50: getCleanedField('particles25_50'),
+                    particles50_100: getCleanedField('particles50_100'),
+                    particles100: getCleanedField('particles100'),
+                    cutting20: getCleanedField('cutting20'),
+                    sliding20: getCleanedField('sliding20'),
+                    totalWater: getCleanedField('totalWater'),
+                    bubbles: getCleanedField('bubbles'),
+                    waterContent: getCleanedField('waterContent'),
+                    largeFePercent: getCleanedField('largeFePercent'),
+                    molybdenum: getCleanedField('molybdenum'),
+                    calcium: getCleanedField('calcium'),
+                    magnesium: getCleanedField('magnesium'),
+                    phosphorus: getCleanedField('phosphorus'),
+                    zinc: getCleanedField('zinc'),
+                    barium: getCleanedField('barium'),
+                    boron: getCleanedField('boron'),
+                    tan: getCleanedField('tan'),
+                    oxidation: getCleanedField('oxidation'),
+                    viscosity40: getCleanedField('viscosity40'),
+                    viscosity100: getCleanedField('viscosity100'),
+                    fluidIntegrity: getCleanedField('fluidIntegrity'),
                 });
             }
 
             if (stationaryEngine) {
                 Object.assign(oilResults, {
-                    iron: formData.iron || '', chrome: formData.chrome || '', nickel: formData.nickel || '',
-                    aluminum: formData.aluminum || '', lead: formData.lead || '', copper: formData.copper || '',
-                    tin: formData.tin || '', titanium: formData.titanium || '', silver: formData.silver || '',
-                    antimony: formData.antimony || '', cadmium: formData.cadmium || '', manganese: formData.manganese || '',
-                    silicon: formData.silicon || '', sodium: formData.sodium || '', vanadium: formData.vanadium || '',
-                    potassium: formData.potassium || '', lithium: formData.lithium || '', glycol: formData.glycol || '',
-                    bubbles: formData.bubbles || '', antiwear: formData.antiwear || '', water: formData.water || '',
-                    sootPercent: formData.sootPercent || '', biodieselFuelDilution: formData.biodieselFuelDilution || '',
-                    molybdenum: formData.molybdenum || '', calcium: formData.calcium || '', magnesium: formData.magnesium || '',
-                    phosphorus: formData.phosphorus || '', zinc: formData.zinc || '', barium: formData.barium || '',
-                    boron: formData.boron || '', tbn: formData.tbn || '', oxidation: formData.oxidation || '',
-                    nitration: formData.nitration || '', sulfation: formData.sulfation || '', viscosity40: formData.viscosity40 || '',
-                    viscosity100: formData.viscosity100 || '', fluidIntegrity: formData.fluidIntegrity || '',
+                    iron: getCleanedField('iron'),
+                    chrome: getCleanedField('chrome'),
+                    nickel: getCleanedField('nickel'),
+                    aluminum: getCleanedField('aluminum'),
+                    lead: getCleanedField('lead'),
+                    copper: getCleanedField('copper'),
+                    tin: getCleanedField('tin'),
+                    titanium: getCleanedField('titanium'),
+                    silver: getCleanedField('silver'),
+                    antimony: getCleanedField('antimony'),
+                    cadmium: getCleanedField('cadmium'),
+                    manganese: getCleanedField('manganese'),
+                    silicon: getCleanedField('silicon'),
+                    sodium: getCleanedField('sodium'),
+                    vanadium: getCleanedField('vanadium'),
+                    potassium: getCleanedField('potassium'),
+                    lithium: getCleanedField('lithium'),
+                    glycol: getCleanedField('glycol'),
+                    bubbles: getCleanedField('bubbles'),
+                    antiwear: getCleanedField('antiwear'),
+                    water: getCleanedField('water'),
+                    sootPercent: getCleanedField('sootPercent'),
+                    biodieselFuelDilution: getCleanedField('biodieselFuelDilution'),
+                    molybdenum: getCleanedField('molybdenum'),
+                    calcium: getCleanedField('calcium'),
+                    magnesium: getCleanedField('magnesium'),
+                    phosphorus: getCleanedField('phosphorus'),
+                    zinc: getCleanedField('zinc'),
+                    barium: getCleanedField('barium'),
+                    boron: getCleanedField('boron'),
+                    tbn: getCleanedField('tbn'),
+                    oxidation: getCleanedField('oxidation'),
+                    nitration: getCleanedField('nitration'),
+                    sulfation: getCleanedField('sulfation'),
+                    viscosity40: getCleanedField('viscosity40'),
+                    viscosity100: getCleanedField('viscosity100'),
+                    fluidIntegrity: getCleanedField('fluidIntegrity'),
                 });
             }
 
             if (mobileEngine) {
                 Object.assign(oilResults, {
-                    iron: formData.iron || '', chrome: formData.chrome || '', nickel: formData.nickel || '',
-                    aluminum: formData.aluminum || '', lead: formData.lead || '', copper: formData.copper || '',
-                    tin: formData.tin || '', titanium: formData.titanium || '', silver: formData.silver || '',
-                    antimony: formData.antimony || '', cadmium: formData.cadmium || '', manganese: formData.manganese || '',
-                    silicon: formData.silicon || '', sodium: formData.sodium || '', vanadium: formData.vanadium || '',
-                    potassium: formData.potassium || '', lithium: formData.lithium || '', glycol: formData.glycol || '',
-                    bubbles: formData.bubbles || '', water: formData.water || '', sootPercent: formData.sootPercent || '',
-                    biodieselFuelDilution: formData.biodieselFuelDilution || '', molybdenum: formData.molybdenum || '',
-                    calcium: formData.calcium || '', magnesium: formData.magnesium || '', phosphorus: formData.phosphorus || '',
-                    zinc: formData.zinc || '', barium: formData.barium || '', boron: formData.boron || '',
-                    tbn: formData.tbn || '', oxidation: formData.oxidation || '', nitration: formData.nitration || '',
-                    sulfation: formData.sulfation || '', viscosity40: formData.viscosity40 || '',
-                    viscosity100: formData.viscosity100 || '', antiwear: formData.antiwear || '',
-                    fluidIntegrity: formData.fluidIntegrity || '',
+                    iron: getCleanedField('iron'),
+                    chrome: getCleanedField('chrome'),
+                    nickel: getCleanedField('nickel'),
+                    aluminum: getCleanedField('aluminum'),
+                    lead: getCleanedField('lead'),
+                    copper: getCleanedField('copper'),
+                    tin: getCleanedField('tin'),
+                    titanium: getCleanedField('titanium'),
+                    silver: getCleanedField('silver'),
+                    antimony: getCleanedField('antimony'),
+                    cadmium: getCleanedField('cadmium'),
+                    manganese: getCleanedField('manganese'),
+                    silicon: getCleanedField('silicon'),
+                    sodium: getCleanedField('sodium'),
+                    vanadium: getCleanedField('vanadium'),
+                    potassium: getCleanedField('potassium'),
+                    lithium: getCleanedField('lithium'),
+                    glycol: getCleanedField('glycol'),
+                    bubbles: getCleanedField('bubbles'),
+                    water: getCleanedField('water'),
+                    sootPercent: getCleanedField('sootPercent'),
+                    biodieselFuelDilution: getCleanedField('biodieselFuelDilution'),
+                    molybdenum: getCleanedField('molybdenum'),
+                    calcium: getCleanedField('calcium'),
+                    magnesium: getCleanedField('magnesium'),
+                    phosphorus: getCleanedField('phosphorus'),
+                    zinc: getCleanedField('zinc'),
+                    barium: getCleanedField('barium'),
+                    boron: getCleanedField('boron'),
+                    tbn: getCleanedField('tbn'),
+                    oxidation: getCleanedField('oxidation'),
+                    nitration: getCleanedField('nitration'),
+                    sulfation: getCleanedField('sulfation'),
+                    viscosity40: getCleanedField('viscosity40'),
+                    viscosity100: getCleanedField('viscosity100'),
+                    antiwear: getCleanedField('antiwear'),
+                    fluidIntegrity: getCleanedField('fluidIntegrity'),
                 });
             }
 
+            // Clean non-oilResults fields too
             const payload = {
                 asset_id: formData.assetId,
                 component_id: formData.componentId,
-                asset_running_hours: formData.runningHours,
-                oil_running_hours: formData.oilRunningHours,
+                asset_running_hours: cleanNumericString(formData.runningHours),
+                oil_running_hours: cleanNumericString(formData.oilRunningHours),
                 oil_analysis_results: JSON.stringify(oilResults),
                 recommendations: formData.recommendation,
                 analysis_date: formData.analysisDate,
                 created_by: username,
                 additional_notes: formData.notes,
             };
-
-            // if (level === 'l1') payload.l1 = '1';
-            // else if (level === 'l2') payload.l2 = '1';
-            // else if (level === 'l3') payload.l3 = '1';
 
             await axios.post(`${config.baseApi}/assetsAnalysis/add-assets-analysis`, payload);
             showAlertMessage('success', 'Success!', `Asset ${formData.assetName} - Component ${formData.componentName} was successfully recorded!`);
@@ -427,7 +548,7 @@ export default function SubmitAsset() {
                 )}
             </AnimatePresence>
 
-            <Container fluid style={{ position: 'relative', zIndex: 2, maxWidth: '1400px' }}>
+            <Container fluid style={{ position: 'relative', zIndex: 2, maxWidth: '2000px' }}>
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '30px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>

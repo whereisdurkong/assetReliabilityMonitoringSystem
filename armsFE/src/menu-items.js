@@ -15,10 +15,16 @@ const menuItems = {
           iconname: 'home',
           children: [
             {
-              id: 'sales',
-              title: 'Sales',
+              id: 'data',
+              title: 'Data Analytic',
               type: 'item',
               url: '/dashboard'
+            },
+            {
+              id: 'sales',
+              title: 'Asset YTD Dashboard',
+              type: 'item',
+              url: '/asset-dashboard'
             }
           ]
         }
@@ -42,56 +48,28 @@ const menuItems = {
     //   ]
     // },
     {
-      id: 'assets',
-      title: 'asset manager',
+      id: 'tools',
+      title: 'Tools',
       type: 'group',
       icon: 'icon-navigation',
       children: [
         {
-          id: 'add-asset',
-          title: 'Add New Asset',
-          type: 'item',
-          icon: 'material-icons-two-tone',
-          iconname: 'add_box',
-          url: '/add-asset'
-
-        },
-        {
           id: 'all-asset',
-          title: 'All Asset',
+          title: 'Asset Manager',
           type: 'item',
           icon: 'material-icons-two-tone',
           iconname: 'precision_manufacturing',
           url: '/all-asset'
 
         },
-
-      ]
-    },
-    {
-      id: 'analysis-reports',
-      title: 'Analysis Reports',
-      type: 'group',
-      icon: 'icon-navigation',
-      children: [
-        {
-          id: 'Create Analysis Report',
-          title: 'Create Analysis Report',
-          type: 'item',
-          icon: 'material-icons-two-tone',
-          iconname: 'note_add',
-          url: '/add-A-R'
-
-        },
         {
           id: 'all-analysis-report',
-          title: 'All Oil Analysis Report',
+          title: 'Oil Analysis Report',
           type: 'item',
           icon: 'material-icons-two-tone',
           iconname: 'snippet_folder',
           url: '/all-submit-asset'
         },
-
       ]
     },
 
@@ -117,13 +95,22 @@ const menuItems = {
           iconname: 'tune',
           url: '/all-option-setup'
         },
+        // {
+        //   id: 'register',
+        //   title: 'Registration',
+        //   type: 'item',
+        //   icon: 'material-icons-two-tone',
+        //   iconname: 'supervisor_account',
+        //   url: '/register'
+
+        // },
         {
-          id: 'register',
-          title: 'Registration',
+          id: 'all-users',
+          title: 'All Users',
           type: 'item',
           icon: 'material-icons-two-tone',
           iconname: 'supervisor_account',
-          url: '/register'
+          url: '/all-users'
 
         }
         // {
