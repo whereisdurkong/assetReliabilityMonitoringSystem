@@ -77,37 +77,8 @@ ARMS continuously monitors your critical assets, detects early warning signs, vi
 | Layer | Technology | Version |
 | :--- | :--- | :--- |
 | **Runtime** | Node.js | `v24.2.0` |
-| **Database** | PostgreSQL (via Supabase) | `20.2.30.0` |
-| **Framework** | Next.js 14 (App Router) | Latest |
-| **Authentication** | Supabase Auth | — |
-| **Styling** | Tailwind CSS + shadcn/ui | — |
+| **Database** | SQL SERVER 2020 | `20.2.30.0` |
+| **Framework** | React.js | Latest |
 | **Hosting** | Vercel (Edge-optimized) | — |
 | **Realtime** | Supabase Realtime WebSockets | — |
 
-```mermaid
-graph TB
-    subgraph "User Layer"
-        A[Web Browser]
-    end
-    
-    subgraph "Frontend - Vercel"
-        B[Next.js App Router]
-        C[Tailwind UI]
-    end
-    
-    subgraph "Backend - Supabase"
-        D[PostgreSQL 20.2]
-        E[Supabase Auth]
-        F[Realtime API]
-    end
-    
-    subgraph "External"
-        G[Asset Sensors / Manual Input]
-    end
-    
-    G -->|Data Ingestion| D
-    A -->|HTTPS| B
-    B -->|REST| D
-    B -->|WebSocket| F
-    B -->|JWT| E
-    D -->|Row Level Security| B
