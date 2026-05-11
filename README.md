@@ -18,7 +18,7 @@ SQL Version: 20.2.30.0 -->
 
 ### _Predict. Prevent. Perform. — Intelligent Asset Reliability for Industry 4.0_
 
-[![Live Demo](https://img.shields.io/badge/LIVE_DEMO-arms--supabase.vercel.app-2ea44f?style=for-the-badge&logo=vercel&logoColor=white)](https://arms-supabase.vercel.app/)
+[![Live Demo](https://img.shields.io/badge/LIVE_DEMO-arms--supabase.vercel.app-2ea44f?style=for-the-badge&logo=vercel&logoColor=white)](https://assetreliabilitymonitoringsystem.vercel.app/)
 [![Node Version](https://img.shields.io/badge/Node-v24.2.0-339933?style=flat-square&logo=node.js&logoColor=white)]()
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-20.2.30.0-4169E1?style=flat-square&logo=postgresql&logoColor=white)]()
 [![Status](https://img.shields.io/badge/Status-Active_Production-success?style=flat-square)]()
@@ -42,7 +42,7 @@ ARMS continuously monitors your critical assets, detects early warning signs, vi
 
 | | |
 | :--- | :--- |
-| 🌐 **Live URL** | [https://arms-supabase.vercel.app/](https://arms-supabase.vercel.app/) |
+| 🌐 **Live URL** | [[https://arms-supabase.vercel.app/](https://assetreliabilitymonitoringsystem.vercel.app/)]([https://arms-supabase.vercel.app/](https://assetreliabilitymonitoringsystem.vercel.app/)) |
 | 👤 **Username** | `test` |
 | 🔑 **Password** | `123456` |
 
