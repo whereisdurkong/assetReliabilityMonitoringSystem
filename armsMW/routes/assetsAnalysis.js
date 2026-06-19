@@ -1,6 +1,7 @@
 var express = require('express');
 const multer = require('multer');
 var bcrypt = require('bcrypt');
+const nodemailer = require("nodemailer");
 const router = express.Router();
 var Sequelize = require('sequelize');
 const { DataTypes } = Sequelize;
@@ -29,6 +30,7 @@ var db = new Sequelize(process.env.DATABASE, process.env.USER, process.env.PASSW
     port: parseInt(process.env.APP_SERVER_PORT),
 });
 
+//Storage configuration for multer - to handle file uploads for documentation
 const DIR = './documentation';
 
 const storage = multer.diskStorage({
@@ -102,6 +104,9 @@ const AssetsAnalysis = db.define('asset_analysis_master', {
     updated_at: {
         type: DataTypes.STRING
     },
+    no_asset_trivector: {
+        type: DataTypes.STRING
+    },
     is_active: {
         type: DataTypes.STRING
     },
@@ -127,6 +132,18 @@ const AssetsAnalysis = db.define('asset_analysis_master', {
         type: DataTypes.STRING
     },
     action_taken: {
+        type: DataTypes.STRING
+    },
+    results: {
+        type: DataTypes.STRING
+    },
+    actions: {
+        type: DataTypes.STRING
+    },
+    asset_before: {
+        type: DataTypes.STRING
+    },
+    asset_after: {
         type: DataTypes.STRING
     },
     iron: {
@@ -311,6 +328,388 @@ const AssetsAnalysis = db.define('asset_analysis_master', {
     tableName: 'asset_analysis_master'
 });
 
+// const NoAssetsAnalysis = db.define('no_asset_analysis_master', {
+//     analysis_id: {
+//         type: DataTypes.INTEGER,
+//         primaryKey: true
+//     },
+//     oil_batch_code: {
+//         type: DataTypes.STRING
+//     },
+//     manufacturing_date: {
+//         type: DataTypes.STRING
+//     },
+//     input_drum_number: {
+//         type: DataTypes.STRING
+//     },
+//     analysis_status: {
+//         type: DataTypes.STRING
+//     },
+//     status_failed_first: {
+//         type: DataTypes.STRING
+//     },
+//     status_failed_second: {
+//         type: DataTypes.STRING
+//     },
+//     recommendations: {
+//         type: DataTypes.STRING
+//     },
+//     resampling_schedule: {
+//         type: DataTypes.STRING
+//     },
+//     analysis_date: {
+//         type: DataTypes.STRING
+//     },
+//     created_by: {
+//         type: DataTypes.STRING
+//     },
+//     created_at: {
+//         type: DataTypes.STRING
+//     },
+//     updated_by: {
+//         type: DataTypes.STRING
+//     },
+//     updated_at: {
+//         type: DataTypes.STRING
+//     },
+//     trivector: {
+//         type: DataTypes.STRING
+//     },
+//     is_active: {
+//         type: DataTypes.STRING
+//     },
+//     documentation: {
+//         type: DataTypes.STRING
+//     },
+//     resolution: {
+//         type: DataTypes.STRING
+//     },
+//     iron: {
+//         type: DataTypes.STRING
+//     },
+//     chrome: {
+//         type: DataTypes.STRING
+//     },
+//     nickel: {
+//         type: DataTypes.STRING
+//     },
+//     aluminium: {
+//         type: DataTypes.STRING
+//     },
+//     lead: {
+//         type: DataTypes.STRING
+//     },
+//     copper: {
+//         type: DataTypes.STRING
+//     },
+//     tin: {
+//         type: DataTypes.STRING
+//     },
+//     titanium: {
+//         type: DataTypes.STRING
+//     },
+//     silver: {
+//         type: DataTypes.STRING
+//     },
+//     antimony: {
+//         type: DataTypes.STRING
+//     },
+//     cadmium: {
+//         type: DataTypes.STRING
+//     },
+//     manganese: {
+//         type: DataTypes.STRING
+//     },
+//     fatigue_gt_20um: {
+//         type: DataTypes.STRING
+//     },
+//     non_metallic_gt_20um: {
+//         type: DataTypes.STRING
+//     },
+//     large_fe: {
+//         type: DataTypes.STRING
+//     },
+//     fe_wear_severity_index: {
+//         type: DataTypes.STRING
+//     },
+//     total_fe_lt_100um: {
+//         type: DataTypes.STRING
+//     },
+//     cutting_gt_20um: {
+//         type: DataTypes.STRING
+//     },
+//     sliding_gt_20um: {
+//         type: DataTypes.STRING
+//     },
+//     large_fe_percent: {
+//         type: DataTypes.STRING
+//     },
+//     iso_4406_code_gt4um: {
+//         type: DataTypes.STRING
+//     },
+//     iso_4406_code_gt6um: {
+//         type: DataTypes.STRING
+//     },
+//     iso_4406_code_gt14um: {
+//         type: DataTypes.STRING
+//     },
+//     cnts_gt4: {
+//         type: DataTypes.STRING
+//     },
+//     cnts_gt6: {
+//         type: DataTypes.STRING
+//     },
+//     cnts_gt14: {
+//         type: DataTypes.STRING
+//     },
+//     particles_5_15um: {
+//         type: DataTypes.STRING
+//     },
+//     particles_15_25um: {
+//         type: DataTypes.STRING
+//     },
+//     particles_25_50um: {
+//         type: DataTypes.STRING
+//     },
+//     particles_50_100um: {
+//         type: DataTypes.STRING
+//     },
+//     particles_gt100um: {
+//         type: DataTypes.STRING
+//     },
+//     molybdenum: {
+//         type: DataTypes.STRING
+//     },
+//     calcium: {
+//         type: DataTypes.STRING
+//     },
+//     magnesium: {
+//         type: DataTypes.STRING
+//     },
+//     phosphorus: {
+//         type: DataTypes.STRING
+//     },
+//     zinc: {
+//         type: DataTypes.STRING
+//     },
+//     barium: {
+//         type: DataTypes.STRING
+//     },
+//     boron: {
+//         type: DataTypes.STRING
+//     },
+//     sodium: {
+//         type: DataTypes.STRING
+//     },
+//     vanadium: {
+//         type: DataTypes.STRING
+//     },
+//     potassium: {
+//         type: DataTypes.STRING
+//     },
+//     lithium: {
+//         type: DataTypes.STRING
+//     },
+//     silicon: {
+//         type: DataTypes.STRING
+//     },
+//     total_water: {
+//         type: DataTypes.STRING
+//     },
+//     bubbles: {
+//         type: DataTypes.STRING
+//     },
+//     water: {
+//         type: DataTypes.STRING
+//     },
+//     glycol_percent: {
+//         type: DataTypes.STRING
+//     },
+//     soot_percent: {
+//         type: DataTypes.STRING
+//     },
+//     biodiesel_fuel_dilution: {
+//         type: DataTypes.STRING
+//     },
+//     tan: {
+//         type: DataTypes.STRING
+//     },
+//     tbn: {
+//         type: DataTypes.STRING
+//     },
+//     oxidation: {
+//         type: DataTypes.STRING
+//     },
+//     nitration: {
+//         type: DataTypes.STRING
+//     },
+//     sulfation: {
+//         type: DataTypes.STRING
+//     },
+//     viscosity_at_40c: {
+//         type: DataTypes.STRING
+//     },
+//     viscosity_at_100c: {
+//         type: DataTypes.STRING
+//     },
+//     fluid_integrity: {
+//         type: DataTypes.STRING
+//     },
+//     antiwear_percent: {
+//         type: DataTypes.STRING
+//     },
+// }, {
+//     freezeTableName: false,
+//     timestamps: false,
+//     createdAt: false,
+//     updatedAt: false,
+//     tableName: 'no_asset_analysis_master'
+// });
+
+const NoAssetsAnalysis = db.define('no_asset_analysis_master', {
+    analysis_id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true
+    },
+    oil_batch_code: {
+        type: DataTypes.STRING
+    },
+    manufacturing_date: {
+        type: DataTypes.STRING
+    },
+    input_drum_number: {
+        type: DataTypes.STRING
+    },
+    analysis_status: {
+        type: DataTypes.STRING
+    },
+    status_failed_first: {
+        type: DataTypes.STRING
+    },
+    status_failed_second: {
+        type: DataTypes.STRING
+    },
+    trivector: {
+        type: DataTypes.STRING
+    },
+    recommendations: {
+        type: DataTypes.STRING
+    },
+    resampling_schedule: {
+        type: DataTypes.STRING
+    },
+    analysis_date: {
+        type: DataTypes.STRING
+    },
+    documentation: {
+        type: DataTypes.STRING
+    },
+    resolution: {
+        type: DataTypes.STRING
+    },
+    actions: {
+        type: DataTypes.STRING
+    },
+    oil_after: {
+        type: DataTypes.STRING
+    },
+    oil_before: {
+        type: DataTypes.STRING
+    },
+    level1: {
+        type: DataTypes.STRING
+    },
+    level2: {
+        type: DataTypes.STRING
+    },
+    level3: {
+        type: DataTypes.STRING
+    },
+    created_by: {
+        type: DataTypes.STRING
+    },
+    created_at: {
+        type: DataTypes.STRING
+    },
+    updated_by: {
+        type: DataTypes.STRING
+    },
+    updated_at: {
+        type: DataTypes.STRING
+    },
+    is_active: {
+        type: DataTypes.STRING
+    },
+
+    // ISO Cleanliness Codes — Gear / Hydraulic / Transmission
+    iso_4406_code_gt4um: {
+        type: DataTypes.STRING
+    },
+    iso_4406_code_gt6um: {
+        type: DataTypes.STRING
+    },
+    iso_4406_code_gt14um: {
+        type: DataTypes.STRING
+    },
+
+    // Additives
+    molybdenum: {
+        type: DataTypes.DECIMAL(18, 4)  // Engine
+    },
+    calcium: {
+        type: DataTypes.DECIMAL(18, 4)  // Engine, Compressors
+    },
+    magnesium: {
+        type: DataTypes.DECIMAL(18, 4)  // Engine, Gear/Hyd/Trans
+    },
+    phosphorus: {
+        type: DataTypes.DECIMAL(18, 4)  // All
+    },
+    zinc: {
+        type: DataTypes.DECIMAL(18, 4)  // All
+    },
+    boron: {
+        type: DataTypes.DECIMAL(18, 4)  // Engine, Compressors
+    },
+
+    // Fluid / Contaminants
+    water: {
+        type: DataTypes.DECIMAL(18, 4)  // All
+    },
+
+    // Chemical Properties
+    tan: {
+        type: DataTypes.DECIMAL(18, 4)  // Gear/Hyd/Trans, Compressors
+    },
+    tbn: {
+        type: DataTypes.DECIMAL(18, 4)  // Engine
+    },
+    oxidation: {
+        type: DataTypes.DECIMAL(18, 4)  // All
+    },
+    nitration: {
+        type: DataTypes.DECIMAL(18, 4)  // Engine
+    },
+    sulfation: {
+        type: DataTypes.DECIMAL(18, 4)  // Engine
+    },
+
+    // Viscosity
+    viscosity_at_40c: {
+        type: DataTypes.DECIMAL(18, 2)  // All
+    },
+    viscosity_at_100c: {
+        type: DataTypes.DECIMAL(18, 2)  // Engine
+    },
+
+}, {
+    freezeTableName: false,
+    timestamps: false,
+    createdAt: false,
+    updatedAt: false,
+    tableName: 'no_asset_analysis_master'
+});
+
 const SetupOption = db.define('option_master', {
     option_id: {
         type: DataTypes.INTEGER,
@@ -351,17 +750,357 @@ const SetupOption = db.define('option_master', {
     tableName: 'option_master'
 });
 
+//ADD NO ASSET ANALYSIS
+// router.post('/add-no-assets-analysis', async (req, res) => {
+//     const currentTimestamp = new Date();
+//     const {
+//         oil_batch_code,
+//         manufacturing_date,
+//         input_drum_number,
+//         oil_type,
+//         oil_analysis_results,
+//         trivector,
+//         recommendations,
+//         analysis_date,
+//         created_by,
+//         analysis_status,
+//     } = req.body;
 
-// Update your POST endpoint
+//     try {
+
+//         //Get count for id
+//         const analysislength = await knex('no_asset_analysis_master').count('* as count').first();
+//         const analysis_id = (analysislength.count || 0) + 1;
+
+
+//         // Parse the JSON string from frontend
+//         let parsedResults = {};
+//         if (oil_analysis_results) {
+//             try {
+//                 parsedResults = typeof oil_analysis_results === 'string'
+//                     ? JSON.parse(oil_analysis_results)
+//                     : oil_analysis_results;
+//             } catch (e) {
+//                 console.error('Error parsing oil_analysis_results:', e);
+//             }
+//         }
+
+//         // Prepare the insert data with all the new columns
+//         const insertData = {
+//             oil_batch_code,
+//             manufacturing_date,
+//             input_drum_number,
+//             oil_type,
+//             analysis_id: analysis_id,
+//             recommendations,
+//             analysis_date,
+//             trivector,
+//             created_by,
+//             analysis_status,  // Add additional notes
+
+//             level1: '1',
+//             // level2: l2,
+//             // level3: l3,
+//             is_active: '1',
+//             created_at: currentTimestamp,
+
+//             // Map all the parsed values to their respective columns
+//             // Wear Metals
+//             iron: parsedResults.iron,
+//             chrome: parsedResults.chrome,
+//             nickel: parsedResults.nickel,
+//             aluminium: parsedResults.aluminum || parsedResults.aluminium,
+//             lead: parsedResults.lead,
+//             copper: parsedResults.copper,
+//             tin: parsedResults.tin,
+//             titanium: parsedResults.titanium,
+//             silver: parsedResults.silver,
+//             antimony: parsedResults.antimony,
+//             cadmium: parsedResults.cadmium,
+//             manganese: parsedResults.manganese,
+
+//             // Particle & Wear Indicators
+//             fatigue_gt_20um: parsedResults.fatigue20,
+//             non_metallic_gt_20um: parsedResults.nonMetallic20,
+//             large_fe: parsedResults.largeFe,
+//             fe_wear_severity_index: parsedResults.feWearSeverity,
+//             total_fe_lt_100um: parsedResults.totalFe100,
+//             cutting_gt_20um: parsedResults.cutting20,
+//             sliding_gt_20um: parsedResults.sliding20,
+//             large_fe_percent: parsedResults.largeFePercent,
+
+//             // ISO Codes
+//             iso_4406_code_gt4um: parsedResults.iso4406_4,
+//             iso_4406_code_gt6um: parsedResults.iso4406_6,
+//             iso_4406_code_gt14um: parsedResults.iso4406_14,
+//             cnts_gt4: parsedResults.cnts4,
+//             cnts_gt6: parsedResults.cnts6,
+//             cnts_gt14: parsedResults.cnts14,
+
+//             // Particle Counts
+//             particles_5_15um: parsedResults.particles5_15,
+//             particles_15_25um: parsedResults.particles15_25,
+//             particles_25_50um: parsedResults.particles25_50,
+//             particles_50_100um: parsedResults.particles50_100,
+//             particles_gt100um: parsedResults.particles100,
+
+//             // Additives
+//             molybdenum: parsedResults.molybdenum,
+//             calcium: parsedResults.calcium,
+//             magnesium: parsedResults.magnesium,
+//             phosphorus: parsedResults.phosphorus,
+//             zinc: parsedResults.zinc,
+//             barium: parsedResults.barium,
+//             boron: parsedResults.boron,
+
+//             // Contaminants
+//             sodium: parsedResults.sodium,
+//             vanadium: parsedResults.vanadium,
+//             potassium: parsedResults.potassium,
+//             lithium: parsedResults.lithium,
+//             silicon: parsedResults.silicon,
+
+//             // Fluid Properties
+//             total_water: parsedResults.totalWater,
+//             bubbles: parsedResults.bubbles,
+//             water: parsedResults.waterContent || parsedResults.water,
+//             glycol_percent: parsedResults.glycol,
+//             soot_percent: parsedResults.sootPercent,
+//             biodiesel_fuel_dilution: parsedResults.biodieselFuelDilution,
+
+//             // Chemical Properties
+//             tan: parsedResults.tan,
+//             tbn: parsedResults.tbn,
+//             oxidation: parsedResults.oxidation,
+//             nitration: parsedResults.nitration,
+//             sulfation: parsedResults.sulfation,
+
+//             // Viscosity
+//             viscosity_at_40c: parsedResults.viscosity40,
+//             viscosity_at_100c: parsedResults.viscosity100,
+
+//             // Integrity
+//             fluid_integrity: parsedResults.fluidIntegrity,
+//             antiwear_percent: parsedResults.antiwear
+//         };
+
+//         // Remove undefined values to avoid SQL errors
+//         Object.keys(insertData).forEach(key => {
+//             if (insertData[key] === undefined) {
+//                 delete insertData[key];
+//             }
+//         });
+
+//         console.log('Inserting data with parsed values:', insertData);
+
+//         await knex('no_asset_analysis_master').insert(insertData);
+
+
+//         // Create change log
+//         await knex('no_asset_analysis_logs').insert({
+//             asset_analysis_id: analysis_id,
+//             changes_made: `${created_by} has added an asset analysis.`,
+//             created_at: currentTimestamp,
+//             created_by: created_by
+//         });
+
+//         res.status(200).json({
+//             message: 'successfully submitted',
+//             asset_analysis_id: analysis_id
+//         });
+
+//         console.log('Successfully added asset analysis with ID:', analysis_id);
+//         console.log('@@@ TRIGGERED /add-assets-analysis');
+
+//     } catch (err) {
+//         console.error('INTERNAL ERROR UNABLE TO PUT ASSETS ANALYSIS: ', err);
+//         res.status(500).json({
+//             error: 'Internal server error',
+//             message: err.message
+//         });
+//     }
+// });
+
+router.post('/add-no-assets-analysis', async (req, res) => {
+    const currentTimestamp = new Date();
+    const {
+        oil_batch_code, manufacturing_date, input_drum_number,
+        oil_analysis_results, trivector, recommendations,
+        analysis_date, created_by, analysis_status,
+        status_failed_first,
+    } = req.body;
+
+    try {
+        const analysislength = await knex('no_asset_analysis_master').count('* as count').first();
+        const analysis_id = (analysislength.count || 0) + 1;
+
+        let parsedResults = {};
+        if (oil_analysis_results) {
+            try {
+                parsedResults = typeof oil_analysis_results === 'string'
+                    ? JSON.parse(oil_analysis_results)
+                    : oil_analysis_results;
+            } catch (e) {
+                console.error('Error parsing oil_analysis_results:', e);
+            }
+        }
+
+        const insertData = {
+            analysis_id,
+            oil_batch_code,
+            manufacturing_date,
+            input_drum_number,
+            trivector,
+            recommendations,
+            analysis_date,
+            status_failed_first: status_failed_first || null,
+            created_by,
+            analysis_status,
+            level1: '1',
+            level2: '1',
+            is_active: '1',
+            created_at: currentTimestamp,
+
+            // Viscosity — all types use 40c; only Engine uses 100c
+            viscosity_at_40c: parsedResults.viscosity40 || null,
+            viscosity_at_100c: parsedResults.viscosity100 || null,
+
+            // Chemical properties
+            tbn: parsedResults.tbn || null,  // Engine
+            tan: parsedResults.tan || null,  // Gear/Hyd/Trans, Compressors
+            oxidation: parsedResults.oxidation || null,  // All
+            sulfation: parsedResults.sulfation || null,  // Engine
+            nitration: parsedResults.nitration || null,  // Engine
+
+            // Additives
+            calcium: parsedResults.calcium || null,  // Engine, Compressors
+            magnesium: parsedResults.magnesium || null,  // Engine, Gear/Hyd/Trans
+            boron: parsedResults.boron || null,  // Engine, Compressors
+            molybdenum: parsedResults.molybdenum || null,  // Engine
+            zinc: parsedResults.zinc || null,  // All
+            phosphorus: parsedResults.phosphorus || null,  // All
+
+            // Fluid / contaminants
+            water: parsedResults.water || null,  // All
+
+            // ISO Cleanliness Codes — Gear / Hydraulic / Transmission only
+            iso_4406_code_gt4um: parsedResults.iso4406_4 || null,
+            iso_4406_code_gt6um: parsedResults.iso4406_6 || null,
+            iso_4406_code_gt14um: parsedResults.iso4406_14 || null,
+        };
+
+        // Strip nulls so SQL Server doesn't complain about missing columns
+        Object.keys(insertData).forEach(key => {
+            if (insertData[key] === undefined) delete insertData[key];
+        });
+
+        await knex('no_asset_analysis_master').insert(insertData);
+
+        await knex('no_asset_analysis_logs').insert({
+            asset_analysis_id: analysis_id,
+            changes_made: `${created_by} has added an asset analysis.`,
+            created_at: currentTimestamp,
+            created_by,
+        });
+
+        //----------------------------------EMAIL FUNCTION----------------------------------------------
+        try {
+            const transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_HOST,
+                secure: false,
+                auth: {
+                    user: process.env.EMAIL,
+                    pass: process.env.EMAIL_PASS
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+
+            const level2_users = await knex('users_master').select('*').where('emp_position', 'l2');
+            const level2_email = level2_users.map(email => email.emp_email);
+
+            const analysis = await knex('no_asset_analysis_master').where('analysis_id', analysis_id).first();
+
+            // Start
+            var start =
+                'Good Day,<br><br>' +
+                'This is to inform you that a <b>New Oil Analysis Report</b> has been successfully created and submitted for review. ' +
+                'The report provides the latest oil analysis and findings for the monitored asset. ' +
+                'Please find the report details below:<br><br>';
+
+            // Body
+            var body =
+                `<b>Report ID:</b> ${analysis_id}<br>
+                <b>Oil Batch Code:</b> ${analysis.oil_batch_code}<br>
+                <b>Drum Number:</b> ${analysis.input_drum_number}<br>
+                <b>Created By:</b> ${created_by}<br>
+                <b>Manufacturing Date:</b> ${manufacturing_date}<br>
+                <b>Analysis Date:</b> ${analysis_date}<br>
+                <b>Recommendations:</b><br>
+                ${recommendations}<br><br>`;
+
+            var link =
+                `To view the complete report, please click the following link:
+                <a href="${process.env.REACT_CLIENT}/view-submitted-asset-no-asset?id=${analysis_id}">
+                View New Oil Analysis Report
+                 </a><br><br>`;
+
+            // Footer
+            var footer =
+                'The information contained in this report is intended to support asset reliability and maintenance planning. ' +
+                'We encourage you to review the findings and recommendations and take the necessary actions as appropriate.<br><br>' +
+                'If you have any questions or require further clarification regarding this report, please contact the Asset Monitoring Team.<br><br>' +
+                'Thank you for your attention and cooperation.<br><br>' +
+                'Best regards,<br><br>' +
+                '<b>Asset Reliability Monitoring System</b>';
+
+            var norep =
+                '<br><hr style="border:0; border-top:1px solid #d3d3d3;"><br>' +
+                '<div style="color:#808080; font-size:12px; font-family:Arial, sans-serif; line-height:1.5;">' +
+                '<b>This is an automated email from the Asset Reliability Monitoring System.</b><br>' +
+                'Please do not reply to this email, as this mailbox is not monitored and responses will not be received.<br><br>' +
+                'If you have any questions or require assistance regarding this report, please contact the Asset Reliability Monitoring Team through the appropriate support channels.<br><br>' +
+                '&copy; ' + new Date().getFullYear() + ' Asset Reliability Monitoring System. All rights reserved.' +
+                '</div>';
+
+            var emailContent = start + body + link + footer + norep;
+
+            // Email for all helpdesk personnel
+            const mailOption = {
+                from: process.env.EMAIL,
+                to: level2_email,
+                subject: `ARMS Notification - New Oil Analysis Report`,
+                html: emailContent
+            }
+            await transporter.sendMail(mailOption);
+            console.log('EEEEEEEEEEEEEEEEEEEEEMMMMMMMMMMMMMMMMMMAAAAAAAAAAAAAAAAAIIIIIIIIIIIILLLLLLLLLLLLLLLLLLLL SEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNT')
+        } catch (err) {
+            console.log('UNABLE TO SEND EMAILLLLL!!!! : ', err)
+        }
+
+
+        res.status(200).json({ message: 'successfully submitted', asset_analysis_id: analysis_id });
+        console.log('Successfully added analysis ID:', analysis_id);
+
+    } catch (err) {
+        console.error('INTERNAL ERROR:', err);
+        res.status(500).json({ error: 'Internal server error', message: err.message });
+    }
+});
+
+// ADD ASSET ANALYSIS
 router.post('/add-assets-analysis', async (req, res) => {
     const currentTimestamp = new Date();
     const {
         asset_id,
+        trivector,
         component_id,  // Add this - it's in your frontend but missing in backend
         asset_running_hours,
         oil_running_hours,
         oil_analysis_results,
         recommendations,
+        created_by_user_id,
         analysis_date,
         created_by,
         additional_notes,  // Add this
@@ -375,7 +1114,6 @@ router.post('/add-assets-analysis', async (req, res) => {
         //Get count for id
         const analysislength = await knex('asset_analysis_master').count('* as count').first();
         const asset_analysis_id = (analysislength.count || 0) + 1;
-
 
         // Parse the JSON string from frontend
         let parsedResults = {};
@@ -392,6 +1130,7 @@ router.post('/add-assets-analysis', async (req, res) => {
         // Prepare the insert data with all the new columns
         const insertData = {
             asset_id,
+            no_asset_trivector: trivector,
             asset_component_id: component_id,  // Add component_id
             asset_analysis_id: asset_analysis_id,
             asset_running_hours,
@@ -495,9 +1234,7 @@ router.post('/add-assets-analysis', async (req, res) => {
         });
 
         console.log('Inserting data with parsed values:', insertData);
-
         await knex('asset_analysis_master').insert(insertData);
-
 
         // Create change log
         await knex('asset_analysis_logs').insert({
@@ -507,12 +1244,96 @@ router.post('/add-assets-analysis', async (req, res) => {
             created_by: created_by
         });
 
+        // ✅ FIX 1: Get L2 users here BEFORE sending email
+        const level2_users = await knex('users_master')
+            .select('*')
+            .where('emp_position', 'l2');
+
+        // console.log('2112', level2_users);
+        // console.log(`✅ Found ${level2_users.length} L2 users`);
+
+        //----------------------------------EMAIL FUNCTION----------------------------------------------
+        try {
+            const transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_HOST,
+                secure: false,
+                auth: {
+                    user: process.env.EMAIL,
+                    pass: process.env.EMAIL_PASS
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+
+            const level2_users = await knex('users_master').select('*').where('emp_position', 'l2');
+            const level2_email = level2_users.map(email => email.emp_email);
+
+            const asset = await knex('assets_master').where('asset_id', asset_id).first();
+
+            // Start
+            var start =
+                'Good Day,<br><br>' +
+                'This is to inform you that an <b>Asset Analysis Report</b> has been successfully created and submitted for review. ' +
+                'The report provides the latest analysis and findings for the monitored asset. ' +
+                'Please find the report details below:<br><br>';
+
+            // Body
+            var body =
+                `<b>Report ID:</b> ${asset_analysis_id}<br>
+                <b>Asset Name:</b> ${asset.asset_name}<br>
+                <b>Asset Location:</b> ${asset.asset_location}<br>
+                <b>Created By:</b> ${created_by}<br>
+                <b>Analysis Date:</b> ${analysis_date}<br>
+                <b>Recommendations:</b><br>
+                ${recommendations}<br><br>`;
+
+            var link =
+                `To view the complete report, please click the following link:
+                <a href="${process.env.REACT_CLIENT}/view-submitted-asset?id=${asset_analysis_id}">
+                View Asset Analysis Report
+                 </a><br><br>`;
+
+            // Footer
+            var footer =
+                'The information contained in this report is intended to support asset reliability and maintenance planning. ' +
+                'We encourage you to review the findings and recommendations and take the necessary actions as appropriate.<br><br>' +
+                'If you have any questions or require further clarification regarding this report, please contact the Asset Monitoring Team.<br><br>' +
+                'Thank you for your attention and cooperation.<br><br>' +
+                'Best regards,<br><br>' +
+                '<b>Asset Reliability Monitoring System</b>';
+
+            var norep =
+                '<br><hr style="border:0; border-top:1px solid #d3d3d3;"><br>' +
+                '<div style="color:#808080; font-size:12px; font-family:Arial, sans-serif; line-height:1.5;">' +
+                '<b>This is an automated email from the Asset Reliability Monitoring System.</b><br>' +
+                'Please do not reply to this email, as this mailbox is not monitored and responses will not be received.<br><br>' +
+                'If you have any questions or require assistance regarding this report, please contact the Asset Reliability Monitoring Team through the appropriate support channels.<br><br>' +
+                '&copy; ' + new Date().getFullYear() + ' Asset Reliability Monitoring System. All rights reserved.' +
+                '</div>';
+
+            var emailContent = start + body + link + footer + norep;
+
+            // Email for all helpdesk personnel
+            const mailOption = {
+                from: process.env.EMAIL,
+                to: level2_email,
+                subject: `ARMS Notification - New Asset Analysis Report`,
+                html: emailContent
+            }
+            await transporter.sendMail(mailOption);
+            console.log('EEEEEEEEEEEEEEEEEEEEEMMMMMMMMMMMMMMMMMMAAAAAAAAAAAAAAAAAIIIIIIIIIIIILLLLLLLLLLLLLLLLLLLL SEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNT')
+        } catch (err) {
+            console.log('UNABLE TO SEND EMAILLLLL!!!! : ', err)
+        }
+
         res.status(200).json({
             message: 'successfully submitted',
             asset_analysis_id: asset_analysis_id
         });
 
         console.log('Successfully added asset analysis with ID:', asset_analysis_id);
+        console.log('@@@ TRIGGERED /add-assets-analysis');
 
     } catch (err) {
         console.error('INTERNAL ERROR UNABLE TO PUT ASSETS ANALYSIS: ', err);
@@ -523,6 +1344,8 @@ router.post('/add-assets-analysis', async (req, res) => {
     }
 });
 
+
+// UPDATE CRITICALITY ANALYSIS STATUS
 router.post('/update-criticality', async (req, res) => {
     const currentTimestamp = new Date()
     try {
@@ -538,6 +1361,7 @@ router.post('/update-criticality', async (req, res) => {
             updated_by,
             updated_at: currentTimestamp
         });
+        console.log('WWWWWWWWWWWWWWWWWWWOOORRRKINNNGGGG: ', { asset_analysis_id, criticality_analysis_report, updated_by });
 
         await knex('asset_analysis_logs').insert({
             asset_analysis_id,
@@ -545,7 +1369,7 @@ router.post('/update-criticality', async (req, res) => {
             created_by: updated_by,
             created_at: currentTimestamp
         })
-
+        console.log(' @@@ TRIGGERED /update-criticality')
         res.status(200).json({ message: 'Updated successfully' });
 
     } catch (err) {
@@ -553,6 +1377,8 @@ router.post('/update-criticality', async (req, res) => {
     }
 })
 
+
+// UPDATE RESAMPLING SCHEDULE
 router.post('/update-resampling-schedule', async (req, res) => {
     const currentTimestamp = new Date();
     try {
@@ -574,13 +1400,312 @@ router.post('/update-resampling-schedule', async (req, res) => {
             created_by: updated_by,
             created_at: currentTimestamp
         })
-
+        console.log(' @@@ TRIGGERED /update-resampling-schedule')
         res.status(200).json({ message: 'Updated successfully' });
     } catch (err) {
         console.log('Unable to update resampling schedule: ', err)
     }
 });
 
+// UPDATE RESAMPLING SCHEDULE - no asset
+router.post('/update-resampling-schedule-no-asset', async (req, res) => {
+    const currentTimestamp = new Date();
+    try {
+        const {
+            analysis_id,
+            resampling_schedule,
+            status_failed_second,
+            updated_by
+        } = req.body;
+
+        await knex('no_asset_analysis_master').where('analysis_id', analysis_id).update({
+            resampling_schedule,
+            status_failed_second,
+            updated_by,
+            updated_at: currentTimestamp
+        });
+
+        await knex('no_asset_analysis_logs').insert({
+            asset_analysis_id: analysis_id,
+            changes_made: updated_by + ' updated resampling schedule of id: ' + analysis_id + ' to ' + resampling_schedule,
+            created_by: updated_by,
+            created_at: currentTimestamp
+        })
+
+        //----------------------------------EMAIL FUNCTION----------------------------------------------
+        try {
+            const transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_HOST,
+                secure: false,
+                auth: {
+                    user: process.env.EMAIL,
+                    pass: process.env.EMAIL_PASS
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+
+            const level2_users = await knex('users_master').select('*').where('emp_position', 'l1');
+            const level2_email = level2_users.map(email => email.emp_email);
+
+            const analysis = await knex('no_asset_analysis_master').where('analysis_id', analysis_id).first();
+
+            // Start
+            var start =
+                'Good Day,<br><br>' +
+                'This is to inform you that an <b>Oil Analysis Report</b> has been updated and submitted for review. ' +
+                'The report provides the latest analysis and findings for the monitored new oil. ' +
+                'Please find the report details below:<br><br>';
+
+            // Body
+            var body =
+                `<b>Report ID:</b> ${analysis_id}<br>
+                <b>Oil Batch Code:</b> ${analysis.oil_batch_code}<br>
+                <b>Drum Number:</b> ${analysis.input_drum_number}<br>
+                
+                <b>Manufacturing Date:</b> ${analysis.manufacturing_date}<br>
+                <b>Analysis Date:</b> ${analysis.analysis_date}<br>
+                <b>Created By:</b> ${analysis.created_by}<br>
+                <b>Updated By:</b> ${updated_by}<br>
+                <b>Recommendations:</b><br>
+                ${analysis.recommendations}<br><br>`;
+
+            var link =
+                `To view the complete report, please click the following link:
+                <a href="${process.env.REACT_CLIENT}/view-submitted-asset-no-asset?id=${analysis_id}">
+                View Asset Analysis Report
+                 </a><br><br>`;
+
+            // Footer
+            var footer =
+                'The information contained in this report is intended to support asset reliability and maintenance planning. ' +
+                'We encourage you to review the findings and recommendations and take the necessary actions as appropriate.<br><br>' +
+                'If you have any questions or require further clarification regarding this report, please contact the Asset Monitoring Team.<br><br>' +
+                'Thank you for your attention and cooperation.<br><br>' +
+                'Best regards,<br><br>' +
+                '<b>Asset Reliability Monitoring System</b>';
+
+            var norep =
+                '<br><hr style="border:0; border-top:1px solid #d3d3d3;"><br>' +
+                '<div style="color:#808080; font-size:12px; font-family:Arial, sans-serif; line-height:1.5;">' +
+                '<b>This is an automated email from the Asset Reliability Monitoring System.</b><br>' +
+                'Please do not reply to this email, as this mailbox is not monitored and responses will not be received.<br><br>' +
+                'If you have any questions or require assistance regarding this report, please contact the Asset Reliability Monitoring Team through the appropriate support channels.<br><br>' +
+                '&copy; ' + new Date().getFullYear() + ' Asset Reliability Monitoring System. All rights reserved.' +
+                '</div>';
+
+            var emailContent = start + body + link + footer + norep;
+
+            // Email for all helpdesk personnel
+            const mailOption = {
+                from: process.env.EMAIL,
+                to: level2_email,
+                subject: `ARMS Notification - Oil Analysis for Level 1`,
+                html: emailContent
+            }
+            await transporter.sendMail(mailOption);
+            console.log('EEEEEEEEEEEEEEEEEEEEEMMMMMMMMMMMMMMMMMMAAAAAAAAAAAAAAAAAIIIIIIIIIIIILLLLLLLLLLLLLLLLLLLL SEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNT')
+        } catch (err) {
+            console.log('UNABLE TO SEND EMAILLLLL!!!! : ', err)
+        }
+
+
+        console.log(' @@@ TRIGGERED /update-resampling-schedule--------- no asset')
+        res.status(200).json({ message: 'Updated successfully' });
+    } catch (err) {
+        console.log('Unable to update resampling schedule: ', err)
+    }
+})
+
+// UPDATE ANALYSIS STATUS TO EMPTY - no asset
+router.post('/update-analysis-status-no-asset', async (req, res, next) => {
+
+    try {
+        const {
+            analysis_id,
+            updated_by,
+            analysis_status,
+            status_failed_second
+        } = req.body;
+
+        const updateData = {
+            analysis_status,
+            updated_by,
+            updated_at: new Date(),
+
+        };
+        console.log('update-analysis-status-no-asset has been triggered: ', updateData);
+        // Only update status_failed_second if it was explicitly sent
+        if (status_failed_second !== undefined) {
+            updateData.status_failed_second = status_failed_second;
+        }
+
+        await knex('no_asset_analysis_master')
+            .where('analysis_id', analysis_id)
+            .update(updateData);
+
+        res.status(200).json({ message: 'Updated successfully' });
+
+    } catch (err) {
+        console.log('Unable to update analysis status: ', err);
+        res.status(500).json({ error: 'Internal server error', message: err.message });
+    }
+});
+
+// UPDATE ANALYSIS STATUS TO EMPTY - no asset
+router.post('/update-analysis-status-no-asset-select', async (req, res, next) => {
+
+    try {
+        const {
+            analysis_id,
+            updated_by,
+            analysis_status,
+            status_failed_second
+        } = req.body;
+
+        const updateData = {
+            analysis_status,
+            updated_by,
+            updated_at: new Date(),
+
+        };
+        console.log('update-analysis-status-no-asset has been triggered: ', updateData);
+        // Only update status_failed_second if it was explicitly sent
+        if (status_failed_second !== undefined) {
+            updateData.status_failed_second = status_failed_second;
+        }
+
+        await knex('no_asset_analysis_master')
+            .where('analysis_id', analysis_id)
+            .update(updateData);
+
+        //----------------------------------EMAIL FUNCTION----------------------------------------------
+        try {
+            const transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_HOST,
+                secure: false,
+                auth: {
+                    user: process.env.EMAIL,
+                    pass: process.env.EMAIL_PASS
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+
+            const level2_users = await knex('users_master').select('*').where('emp_position', 'l2');
+            const level2_email = level2_users.map(email => email.emp_email);
+
+            const analysis = await knex('no_asset_analysis_master').where('analysis_id', analysis_id).first();
+
+            // Start
+            var start =
+                'Good Day,<br><br>' +
+                'This is to inform you that an <b>Oil Analysis Report</b> has been updated and submitted for review. ' +
+                'The report provides the latest analysis and findings for the monitored new oil. ' +
+                'Please find the report details below:<br><br>';
+
+            // Body
+            var body =
+                `<b>Report ID:</b> ${analysis_id}<br>
+                <b>Oil Batch Code:</b> ${analysis.oil_batch_code}<br>
+                <b>Drum Number:</b> ${analysis.input_drum_number}<br>
+                
+                <b>Manufacturing Date:</b> ${analysis.manufacturing_date}<br>
+                <b>Analysis Date:</b> ${analysis.analysis_date}<br>
+                <b>Created By:</b> ${analysis.created_by}<br>
+                <b>Updated By:</b> ${updated_by}<br>
+                <b>Recommendations:</b><br>
+                ${analysis.recommendations}<br><br>`;
+
+            var link =
+                `To view the complete report, please click the following link:
+                <a href="${process.env.REACT_CLIENT}/view-submitted-asset-no-asset?id=${analysis_id}">
+                View Asset Analysis Report
+                 </a><br><br>`;
+
+            // Footer
+            var footer =
+                'The information contained in this report is intended to support asset reliability and maintenance planning. ' +
+                'We encourage you to review the findings and recommendations and take the necessary actions as appropriate.<br><br>' +
+                'If you have any questions or require further clarification regarding this report, please contact the Asset Monitoring Team.<br><br>' +
+                'Thank you for your attention and cooperation.<br><br>' +
+                'Best regards,<br><br>' +
+                '<b>Asset Reliability Monitoring System</b>';
+
+            var norep =
+                '<br><hr style="border:0; border-top:1px solid #d3d3d3;"><br>' +
+                '<div style="color:#808080; font-size:12px; font-family:Arial, sans-serif; line-height:1.5;">' +
+                '<b>This is an automated email from the Asset Reliability Monitoring System.</b><br>' +
+                'Please do not reply to this email, as this mailbox is not monitored and responses will not be received.<br><br>' +
+                'If you have any questions or require assistance regarding this report, please contact the Asset Reliability Monitoring Team through the appropriate support channels.<br><br>' +
+                '&copy; ' + new Date().getFullYear() + ' Asset Reliability Monitoring System. All rights reserved.' +
+                '</div>';
+
+            var emailContent = start + body + link + footer + norep;
+
+            // Email for all helpdesk personnel
+            const mailOption = {
+                from: process.env.EMAIL,
+                to: level2_email,
+                subject: `ARMS Notification - Oil Analysis for Level 2`,
+                html: emailContent
+            }
+            await transporter.sendMail(mailOption);
+            console.log('EEEEEEEEEEEEEEEEEEEEEMMMMMMMMMMMMMMMMMMAAAAAAAAAAAAAAAAAIIIIIIIIIIIILLLLLLLLLLLLLLLLLLLL SEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNT')
+        } catch (err) {
+            console.log('UNABLE TO SEND EMAILLLLL!!!! : ', err)
+        }
+
+
+        res.status(200).json({ message: 'Updated successfully' });
+
+    } catch (err) {
+        console.log('Unable to update analysis status: ', err);
+        res.status(500).json({ error: 'Internal server error', message: err.message });
+    }
+});
+
+router.post('/update-no-asset-clear-l2', async (req, res, next) => {
+    try {
+        const {
+            analysis_id,
+            updated_by,
+        } = req.body;
+
+        await knex('no_asset_analysis_master').where('analysis_id', analysis_id).update({
+            level2: null,
+            updated_by,
+            updated_at: new Date()
+        });
+        res.status(200).json({ message: 'Updated successfully' });
+    } catch (err) {
+        console.log('Unable to update analysis status: ', err);
+        res.status(500).json({ error: 'Internal server error', message: err.message });
+    }
+})
+
+router.post('/update-no-asset-add-l2', async (req, res, next) => {
+    try {
+        const {
+            analysis_id,
+            updated_by,
+        } = req.body;
+
+        await knex('no_asset_analysis_master').where('analysis_id', analysis_id).update({
+            level2: '1',
+            updated_by,
+            updated_at: new Date()
+        });
+        res.status(200).json({ message: 'Updated successfully' });
+    } catch (err) {
+        console.log('Unable to update analysis status: ', err);
+        res.status(500).json({ error: 'Internal server error', message: err.message });
+    }
+})
+
+// //UPDATE SEVERE ACTION AND DOCUMENTATION - no asset
 // router.post('/update-severe-action', upload.array('documentation'), async (req, res) => {
 //     const currentTimestamp = new Date();
 
@@ -588,34 +1713,60 @@ router.post('/update-resampling-schedule', async (req, res) => {
 //         const {
 //             asset_analysis_id,
 //             severe_action,
-//             documentation,
 //             updated_by
 //         } = req.body;
 
-//         let documentationPath = null;
+//         let documentationPaths = [];
+
+//         // Handle uploaded files
 //         if (req.files && req.files.length > 0) {
-//             documentationPath = req.files.map(file => file.path).join(';'); // Save multiple paths separated by ;
+//             documentationPaths = req.files.map(file => ({
+//                 originalName: file.originalname,
+//                 storedName: file.filename,
+//                 path: file.path,
+//                 size: file.size,
+//                 mimetype: file.mimetype
+//             }));
+
+//             // Store relative paths or just filenames in database
+//             const fileNamesString = req.files.map(file => file.filename).join(',');
+
+//             await knex('no_asset_analysis_master').where('asset_analysis_id', asset_analysis_id).update({
+//                 action_taken: severe_action,
+//                 documentation: fileNamesString, // Store comma-separated filenames
+//                 updated_by,
+//                 updated_at: currentTimestamp
+//             });
+//         } else {
+//             await knex('no_asset_analysis_master').where('asset_analysis_id', asset_analysis_id).update({
+//                 action_taken: severe_action,
+//                 updated_by,
+//                 updated_at: currentTimestamp
+//             });
 //         }
 
-//         await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).update({
-//             action_taken: severe_action,
-//             documentation: documentation,
-//             updated_by,
-//             updated_at: currentTimestamp
-//         });
-
-//         await knex('asset_analysis_logs').insert({
+//         await knex('no_asset_analysis_logs').insert({
 //             asset_analysis_id,
-//             changes_made: updated_by + ' updated resampling schedule of id: ' + asset_analysis_id,
+//             changes_made: `${updated_by} updated severe action for id: ${asset_analysis_id}`,
 //             created_by: updated_by,
 //             created_at: currentTimestamp
-//         })
+//         });
 
-//         res.status(200).json({ message: 'Updated successfully' });
+//         console.log('@@@ TRIGGERED /update-severe-action');
+//         res.status(200).json({
+//             message: 'Updated successfully',
+//             files: documentationPaths
+//         });
 //     } catch (err) {
-//         console.log('Unable to update severe action: ', err)
+//         console.error('Unable to update severe action: ', err);
+//         res.status(500).json({
+//             error: 'Failed to update severe action',
+//             details: err.message
+//         });
 //     }
-// })
+// });
+
+//UPDATE SEVERE ACTION AND DOCUMENTATION
 router.post('/update-severe-action', upload.array('documentation'), async (req, res) => {
     const currentTimestamp = new Date();
 
@@ -662,6 +1813,7 @@ router.post('/update-severe-action', upload.array('documentation'), async (req, 
             created_at: currentTimestamp
         });
 
+        console.log('@@@ TRIGGERED /update-severe-action');
         res.status(200).json({
             message: 'Updated successfully',
             files: documentationPaths
@@ -675,6 +1827,7 @@ router.post('/update-severe-action', upload.array('documentation'), async (req, 
     }
 });
 
+// UPDATE - REMOVE SEVERE ACTION AND DOCUMENTATION
 router.post('/update-remove-severe-action', async (req, res) => {
     const currentTimestamp = new Date();
 
@@ -743,6 +1896,7 @@ router.post('/update-remove-severe-action', async (req, res) => {
             created_at: currentTimestamp
         });
 
+        console.log('@@@ TRIGGERED /update-remove-severe-action');
         res.status(200).json({
             message: 'Severe action and documentation removed successfully',
             deletedFiles: deletedFiles,
@@ -760,6 +1914,7 @@ router.post('/update-remove-severe-action', async (req, res) => {
     }
 });
 
+//UPDATE APPROPRIATE ACTION AND ACTION NOTES
 router.post('/update-appropriate-actions', async (req, res) => {
     const currentTimestamp = new Date();
     try {
@@ -776,9 +1931,87 @@ router.post('/update-appropriate-actions', async (req, res) => {
             action_notes,
             updated_by,
             updated_at: currentTimestamp
-        })
+        });
 
+        //----------------------------------EMAIL FUNCTION----------------------------------------------
+        try {
+            const transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_HOST,
+                secure: false,
+                auth: {
+                    user: process.env.EMAIL,
+                    pass: process.env.EMAIL_PASS
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
 
+            const level2_users = await knex('users_master').select('*').where('emp_position', 'l2');
+            const level2_email = level2_users.map(email => email.emp_email);
+
+            const analysis_report = await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).first();
+
+            const asset = await knex('assets_master').where('asset_id', analysis_report.asset_id).first();
+
+            // Start
+            var start =
+                'Good Day,<br><br>' +
+                'This is to inform you that the <b>Asset Analysis Report</b> has been reviewed and approved by the Level 3 evaluator. ' +
+                'The report is now pending final documentation to complete the asset analysis report. ' +
+                'Please find the report details below:<br><br>';
+
+            // Body
+            var body =
+                `<b>Report ID:</b> ${asset_analysis_id}<br>
+                <b>Asset Name:</b> ${asset.asset_name}<br>
+                <b>Asset Location:</b> ${asset.asset_location}<br>
+                <b>Approved By:</b> ${updated_by} <br>
+                <b>Recommendations:</b><br>
+                ${analysis_report.recommendations}<br><br>`;
+
+            // Link
+            var link =
+                'Kindly proceed with the final documentation process by accessing the report through this link: ' +
+                `<a href="${process.env.REACT_CLIENT}/view-submitted-asset?id=${asset_analysis_id}">
+                View Asset Analysis Report 
+                </a><br><br>`;
+
+            // Footer
+            var footer =
+                'The Asset Analysis Report has successfully completed the technical review and approval process. ' +
+                'Your timely completion of the final documentation will ensure proper record management and facilitate any required follow-up actions.<br><br>' +
+                'Should you require additional information or clarification, please contact the Asset Reliability Monitoring Team.<br><br>' +
+                'Thank you for your cooperation.<br><br>' +
+                'Best regards,<br><br>' +
+                '<b>Asset Reliability Monitoring System</b>';
+
+            // No Reply
+            var norep =
+                '<br><hr style="border:0; border-top:1px solid #d3d3d3;"><br>' +
+                '<div style="color:#808080; font-size:12px; font-family:Arial, sans-serif; line-height:1.5;">' +
+                '<b>This is an automated email from the Asset Reliability Monitoring System.</b><br>' +
+                'Please do not reply to this email, as this mailbox is not monitored and responses will not be received.<br><br>' +
+                'For assistance regarding this report or the final documentation process, please contact the Asset Reliability Monitoring Team through the appropriate support channels.<br><br>' +
+                '&copy; ' + new Date().getFullYear() + ' Asset Reliability Monitoring System. All rights reserved.' +
+                '</div>';
+
+            var emailContent = start + body + link + footer + norep;
+
+            // Email for all helpdesk personnel
+            const mailOption = {
+                from: process.env.EMAIL,
+                to: level2_email,
+                subject: `ARMS Notification - Awaiting Level 2 Review`,
+                html: emailContent
+            }
+            await transporter.sendMail(mailOption);
+            console.log('EEEEEEEEEEEEEEEEEEEEEMMMMMMMMMMMMMMMMMMAAAAAAAAAAAAAAAAAIIIIIIIIIIIILLLLLLLLLLLLLLLLLLLL SEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNT')
+        } catch (err) {
+            console.log('UNABLE TO SEND EMAILLLLL!!!! : ', err)
+        }
+
+        console.log(' @@@ TRIGGERED /update-appropriate-actions')
         res.status(200).json({
             message: 'Updated successfully'
         });
@@ -787,6 +2020,7 @@ router.post('/update-appropriate-actions', async (req, res) => {
     }
 })
 
+//UpdaTE TO LEVEL 2 (REQUIRES APPROPRIATE ACTIONS AND ACTION NOTES TO BE FILLED IN)
 router.post('/update-level-two', async (req, res) => {
     const currentTimestamp = new Date();
     try {
@@ -803,12 +2037,15 @@ router.post('/update-level-two', async (req, res) => {
 
         })
 
+        console.log(' @@@ TRIGGERED /update-level-two')
         res.status(200).json({ message: 'Updated successfully' });
 
     } catch (err) {
         console.log('Unable to update to level2: ', err)
     }
 })
+
+// UPDATE TO LEVEL 2 WITHOUT REQUIRING APPROPRIATE ACTIONS AND ACTION NOTES TO BE FILLED IN (FOR USER TO BYPASS AND GO STRAIGHT TO LEVEL 2 IF THEY WANT)
 router.post('/update-level-two-user', async (req, res) => {
     const currentTimestamp = new Date();
     try {
@@ -824,8 +2061,86 @@ router.post('/update-level-two-user', async (req, res) => {
             updated_at: currentTimestamp,
             appropriate_action: '',
             action_notes: ''
-        })
+        });
 
+        //----------------------------------EMAIL FUNCTION----------------------------------------------
+        try {
+            const transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_HOST,
+                secure: false,
+                auth: {
+                    user: process.env.EMAIL,
+                    pass: process.env.EMAIL_PASS
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+
+            const level2_users = await knex('users_master').select('*').where('emp_position', 'l3');
+            const level3_email = level2_users.map(email => email.emp_email);
+
+            const analysis_report = await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).first();
+
+            const asset = await knex('assets_master').where('asset_id', analysis_report.asset_id).first();
+
+            // Start
+            var start =
+                'Good Day,<br><br>' +
+                'This is to notify you that an <b>Asset Analysis Report</b> has been updated by the assigned analyst and is pending your evaluation. ' +
+                'Your review of the updated findings and recommendations is requested to facilitate the appropriate follow-up actions. ' +
+                'Please find the report details below:<br><br>';
+
+            // Body
+            var body =
+                `<b>Report ID:</b> ${asset_analysis_id}<br>
+                <b>Asset Name:</b> ${asset.asset_name}<br>
+                <b>Asset Location:</b> ${asset.asset_location}<br>
+                <b>Updated By:</b> ${updated_by}<br>
+                <b>Analysis Date:</b> ${analysis_report.analysis_date}<br>
+                <b>Recommendations:</b><br>
+                ${analysis_report.recommendations}<br><br>`;
+
+            var link =
+                `To view the complete report, please click the following link:
+                <a href="${process.env.REACT_CLIENT}/view-submitted-asset?id=${asset_analysis_id}">
+                View Asset Analysis Report
+                 </a><br><br>`;
+
+            // Footer
+            var footer =
+                'The information contained in this report is intended to support asset reliability and maintenance planning. ' +
+                'Kindly review the updated findings and recommendations and take the appropriate actions as necessary.<br><br>' +
+                'If you require additional information or clarification regarding this report, please contact the Asset Reliability Monitoring Team through the designated support channels.<br><br>' +
+                'Thank you for your prompt attention and cooperation.<br><br>' +
+                'Best regards,<br><br>' +
+                '<b>Asset Reliability Monitoring System</b>';
+
+            var norep =
+                '<br><hr style="border:0; border-top:1px solid #d3d3d3;"><br>' +
+                '<div style="color:#808080; font-size:12px; font-family:Arial, sans-serif; line-height:1.5;">' +
+                '<b>This is an automated email from the Asset Reliability Monitoring System.</b><br>' +
+                'Please do not reply to this email, as this mailbox is not monitored and responses will not be received.<br><br>' +
+                'If you have any questions or require assistance regarding this report, please contact the Asset Reliability Monitoring Team through the appropriate support channels.<br><br>' +
+                '&copy; ' + new Date().getFullYear() + ' Asset Reliability Monitoring System. All rights reserved.' +
+                '</div>';
+
+            var emailContent = start + body + link + footer + norep;
+
+            // Email for all helpdesk personnel
+            const mailOption = {
+                from: process.env.EMAIL,
+                to: level3_email,
+                subject: `ARMS Notification - Awaiting Level 3 Review`,
+                html: emailContent
+            }
+            await transporter.sendMail(mailOption);
+            console.log('EEEEEEEEEEEEEEEEEEEEEMMMMMMMMMMMMMMMMMMAAAAAAAAAAAAAAAAAIIIIIIIIIIIILLLLLLLLLLLLLLLLLLLL SEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNT')
+        } catch (err) {
+            console.log('UNABLE TO SEND EMAILLLLL!!!! : ', err)
+        }
+
+        console.log(' @@@ TRIGGERED /update-level-two-user')
         res.status(200).json({ message: 'Updated successfully' });
 
     } catch (err) {
@@ -833,6 +2148,7 @@ router.post('/update-level-two-user', async (req, res) => {
     }
 })
 
+// UPDATE TO LEVEL 1 WITHOUT REQUIRING APPROPRIATE ACTIONS AND ACTION NOTES TO BE FILLED IN (FOR USER TO BYPASS AND GO STRAIGHT TO LEVEL 1 IF THEY WANT)
 router.post('/update-level-one', async (req, res) => {
     const currentTimestamp = new Date();
     try {
@@ -854,23 +2170,116 @@ router.post('/update-level-one', async (req, res) => {
             updated_at: currentTimestamp
         })
 
+
+        //----------------------------------EMAIL FUNCTION----------------------------------------------
+        try {
+            const transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_HOST,
+                secure: false,
+                auth: {
+                    user: process.env.EMAIL,
+                    pass: process.env.EMAIL_PASS
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+
+            const level2_users = await knex('users_master').select('*').where('emp_position', 'l2');
+            const level2_email = level2_users.map(email => email.emp_email);
+
+            const analysis_report = await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).first();
+
+            const asset = await knex('assets_master').where('asset_id', analysis_report.asset_id).first();
+
+            // Start
+            var start =
+                'Good Day,<br><br>' +
+                'This is to notify you that an <b>Asset Analysis Report</b> has been updated by the assigned analyst and is pending your evaluation. ' +
+                'Your review of the updated findings and recommendations is requested to facilitate the appropriate follow-up actions. ' +
+                'Please find the report details below:<br><br>';
+
+            // Body
+            var body =
+                `<b>Report ID:</b> ${asset_analysis_id}<br>
+                <b>Asset Name:</b> ${asset.asset_name}<br>
+                <b>Asset Location:</b> ${asset.asset_location}<br>
+                <b>Updated By:</b> ${updated_by}<br>
+                <b>Analysis Date:</b> ${analysis_report.analysis_date}<br>
+                <b>Recommendations:</b><br>
+                ${analysis_report.recommendations}<br><br>`;
+
+            var link =
+                `To view the complete report, please click the following link:
+                <a href="${process.env.REACT_CLIENT}/view-submitted-asset?id=${asset_analysis_id}">
+                View Asset Analysis Report
+                 </a><br><br>`;
+
+            // Footer
+            var footer =
+                'The information contained in this report is intended to support asset reliability and maintenance planning. ' +
+                'Kindly review the updated findings and recommendations and take the appropriate actions as necessary.<br><br>' +
+                'If you require additional information or clarification regarding this report, please contact the Asset Reliability Monitoring Team through the designated support channels.<br><br>' +
+                'Thank you for your prompt attention and cooperation.<br><br>' +
+                'Best regards,<br><br>' +
+                '<b>Asset Reliability Monitoring System</b>';
+
+            var norep =
+                '<br><hr style="border:0; border-top:1px solid #d3d3d3;"><br>' +
+                '<div style="color:#808080; font-size:12px; font-family:Arial, sans-serif; line-height:1.5;">' +
+                '<b>This is an automated email from the Asset Reliability Monitoring System.</b><br>' +
+                'Please do not reply to this email, as this mailbox is not monitored and responses will not be received.<br><br>' +
+                'If you have any questions or require assistance regarding this report, please contact the Asset Reliability Monitoring Team through the appropriate support channels.<br><br>' +
+                '&copy; ' + new Date().getFullYear() + ' Asset Reliability Monitoring System. All rights reserved.' +
+                '</div>';
+
+            var emailContent = start + body + link + footer + norep;
+
+            // Email for all helpdesk personnel
+            const mailOption = {
+                from: process.env.EMAIL,
+                to: level2_email,
+                subject: `ARMS Notification - Awaiting Level 2 Review`,
+                html: emailContent
+            }
+            await transporter.sendMail(mailOption);
+            console.log('EEEEEEEEEEEEEEEEEEEEEMMMMMMMMMMMMMMMMMMAAAAAAAAAAAAAAAAAIIIIIIIIIIIILLLLLLLLLLLLLLLLLLLL SEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNT')
+        } catch (err) {
+            console.log('UNABLE TO SEND EMAILLLLL!!!! : ', err)
+        }
+
+
+        console.log(' @@@ TRIGGERED /update-level-one')
         res.status(200).json({ message: 'Updated successfully' });
 
     } catch (err) {
         console.log('Unable to update to level2: ', err)
     }
-})
+});
 
-router.get('/get-all-submitted-assets', async (req, res) => {
+// GET ALL SUBMITTED NO ASSETS ANALYSIS REPORT
+router.get('/get-all-submitted-no-assets', async (req, res) => {
     try {
-        const fetch = await knex('asset_analysis_master').select('*');
+        const fetch = await knex('no_asset_analysis_master').select('*');
         res.json(fetch);
-        console.log('triggered /get-all-assets')
+        console.log(' @@@ TRIGGERED /get-all-submitted-no-assets')
     } catch (err) {
         console.log('INTERNAL ERROR, UNABLE TO FETCH ALL ASSETS', err)
     }
 })
 
+// GET ALL SUBMITTED ASSETS ANALYSIS
+router.get('/get-all-submitted-assets', async (req, res) => {
+    try {
+        const fetch = await knex('asset_analysis_master').select('*');
+        res.json(fetch);
+        console.log(' @@@ TRIGGERED /get-all-submitted-assets')
+    } catch (err) {
+        console.log('INTERNAL ERROR, UNABLE TO FETCH ALL ASSETS', err)
+    }
+})
+
+// GET ASSET ANALYSIS BY ID
 router.get('/get-submitted-assets-by-id', async (req, res, next) => {
     try {
         const getbyID = await AssetsAnalysis.findAll({
@@ -878,13 +2287,28 @@ router.get('/get-submitted-assets-by-id', async (req, res, next) => {
                 asset_analysis_id: req.query.id
             }
         })
-        console.log('triggered /get-asset-by-id');
+        console.log(' @@@ TRIGGERED /get-submitted-assets-by-id');
         res.json(getbyID[0])
     } catch (err) {
         console.log('INTERNAL ERROR: ', err)
     }
 })
 
+router.get('/get-submitted-no-assets-by-id', async (req, res, next) => {
+    try {
+        const getbyID = await NoAssetsAnalysis.findAll({
+            where: {
+                analysis_id: req.query.id
+            }
+        })
+        console.log(' @@@ TRIGGERED /get-submitted-no-assets-by-id');
+        res.json(getbyID[0])
+    } catch (err) {
+        console.log('INTERNAL ERROR: ', err)
+    }
+})
+
+// ADD OPTION FOR ASSET SETUP
 router.post('/add-option', async (req, res) => {
     try {
 
@@ -916,7 +2340,7 @@ router.post('/add-option', async (req, res) => {
             created_at: new Date(),
 
         })
-
+        console.log('@@@ TRIGGERED /add-option')
         res.json(200)
 
         console.log(option_asset_location)
@@ -926,6 +2350,7 @@ router.post('/add-option', async (req, res) => {
     }
 });
 
+// UPDATE OPTION FOR ASSET SETUP
 router.post('/update-option', async (req, res) => {
     try {
         const {
@@ -946,6 +2371,7 @@ router.post('/update-option', async (req, res) => {
             updated_at: new Date(),
 
         })
+        console.log('@@@ TRIGGERED /update-option')
         res.json(200)
 
     } catch (err) {
@@ -953,11 +2379,13 @@ router.post('/update-option', async (req, res) => {
     }
 })
 
+//delete option for asset setup
 router.post('/delete-option', async (req, res) => {
     try {
         const {
             option_id
         } = req.body;
+        console.log('@@@ TRIGGERED /delete-option')
         await knex('option_master').where({ option_id: option_id }).del();
         res.json(200)
     } catch (err) {
@@ -965,17 +2393,18 @@ router.post('/delete-option', async (req, res) => {
     }
 })
 
+// GET ALL OPTIONS FOR ASSET SETUP
 router.get('/get-all-options', async (req, res) => {
     try {
         const fetch = await knex('option_master').select('*');
         res.json(fetch);
-        console.log('triggered-get-all-options')
+        console.log(' @@@ TRIGGERED /get-all-options')
     } catch (err) {
         console.log('UNABLE TO GET ALL OPTIONS: ', err);
     }
 })
 
-
+// GET OPTION BY ID FOR ASSET SETUP
 router.get('/get-option-by-id', async (req, res) => {
     try {
         const getbyID = await SetupOption.findAll({
@@ -983,14 +2412,14 @@ router.get('/get-option-by-id', async (req, res) => {
                 option_id: req.query.id
             }
         })
-        console.log('triggered /get-asset-by-id');
+        console.log(' @@@ TRIGGERED /get-option-by-id');
         res.json(getbyID[0])
     } catch (err) {
         console.log('UNABLE TO GET OPTION BY ID: ', err);
     }
 })
 
-// For individual wear metal items - returns the inserted ID
+// ADD WEAR METAL OPTION
 router.post('/add-wear-metal', async (req, res) => {
 
     const { parameter, unit, trivector_id } = req.body;
@@ -1005,6 +2434,7 @@ router.post('/add-wear-metal', async (req, res) => {
         }).returning('option_trivector_wear_metal_id'); // Use returning('id') for PostgreSQL or for MSSQL use:
 
         const id = id_wearMetal.option_trivector_wear_metals || id_wearMetal
+        console.log('@@@ TRIGGERED /add-wear-metal')
         res.status(200).json({
             success: true,
             id: id,
@@ -1015,6 +2445,7 @@ router.post('/add-wear-metal', async (req, res) => {
     }
 });
 
+// ADD CONTAMINANT OPTION
 router.post('/add-contaminant', async (req, res) => {
 
     const { parameter, unit, trivector_id } = req.body;
@@ -1029,6 +2460,7 @@ router.post('/add-contaminant', async (req, res) => {
         }).returning('option_trivector_contaminants_id'); // Use returning('id') for PostgreSQL or for MSSQL use:
 
         const id = id_wearMetal.option_trivector_contaminants_id || id_wearMetal
+        console.log('@@@ TRIGGERED /add-contaminant')
         res.status(200).json({
             success: true,
             id: id,
@@ -1039,6 +2471,7 @@ router.post('/add-contaminant', async (req, res) => {
     }
 });
 
+// ADD CHEMICAL VISCOSITY OPTION
 router.post('/add-chemviscosity', async (req, res) => {
 
     const { parameter, unit, trivector_id } = req.body;
@@ -1053,6 +2486,7 @@ router.post('/add-chemviscosity', async (req, res) => {
         }).returning('option_trivector_chem_viscosity_id'); // Use returning('id') for PostgreSQL or for MSSQL use:
 
         const id = id_wearMetal.option_trivector_chem_viscosity_id || id_wearMetal
+        console.log('@@@ TRIGGERED /add-chemviscosity')
         res.status(200).json({
             success: true,
             id: id,
@@ -1063,16 +2497,18 @@ router.post('/add-chemviscosity', async (req, res) => {
     }
 });
 
+// GET ALL OPTIONS FOR ASSET SETUP
 router.get('/get-all-options-master', async (req, res) => {
     try {
         const fetch = await knex('option_master').select('*');
         res.json(fetch);
-        console.log('triggered-get-all-options-master')
+        console.log('@@@ TRIGGERED /get-all-options-master')
     } catch (err) {
         console.log('UNABLE TO GET ALL OPTION MASTER: ', err)
     }
 });
 
+// UPDATE ASSET DETAILS IN ASSETS MASTER
 router.post('/update-assets', async (req, res) => {
     const currentTimestamp = new Date()
     const {
@@ -1107,10 +2543,12 @@ router.post('/update-assets', async (req, res) => {
         created_at: currentTimestamp
 
     })
+    console.log('@@@ TRIGGERED /update-assets')
     res.status(200).json({ message: 'Asset updated successfully' });
 
 });
 
+// ADD TRIVECTOR
 router.post('/add-trivector', async (req, res) => {
     try {
         const {
@@ -1143,7 +2581,7 @@ router.post('/add-trivector', async (req, res) => {
                 chemViscosityCount: option_trivector_chemical_viscosity?.length || 0
             }
         });
-        console.log('Successfully added trivector');
+        console.log('@@@ TRIGGERED /add-trivector');
     } catch (err) {
         console.log('UNABLE TO ADD TRIVECTOR: ', err)
         res.status(500).json({
@@ -1153,6 +2591,7 @@ router.post('/add-trivector', async (req, res) => {
     }
 })
 
+// UPDATE TRIVECTOR
 router.post('/update-trivector', async (req, res) => {
     try {
         const {
@@ -1185,6 +2624,7 @@ router.post('/update-trivector', async (req, res) => {
             });
 
         if (updated) {
+            console.log('@@@ TRIGGERED /update-trivector');
             res.status(200).json({
                 success: true,
                 message: 'Successfully updated trivector',
@@ -1196,6 +2636,7 @@ router.post('/update-trivector', async (req, res) => {
                 }
             });
         } else {
+            console.log('Failed to update trivector');
             res.status(400).json({
                 success: false,
                 error: 'Failed to update trivector'
@@ -1211,6 +2652,7 @@ router.post('/update-trivector', async (req, res) => {
     }
 });
 
+//
 router.get('/get-all-trivector', async (req, res) => {
     try {
         const fetch = await knex('option_trivector_master').select('*');
@@ -1220,5 +2662,297 @@ router.get('/get-all-trivector', async (req, res) => {
         console.log('UNABLE TO GET TRIVECTOR BY ID: ', err);
     }
 })
+
+router.post('/update-no-asset-resolution', async (req, res, next) => {
+    try {
+
+        const {
+            analysis_id,
+            resolution,
+            updated_by,
+            actions
+        } = req.body;
+
+        await knex('no_asset_analysis_master').where('analysis_id', analysis_id).update({
+            resolution,
+            actions,
+            updated_by,
+            updated_at: new Date()
+        });
+
+        console.log('update-no-asset-resolution has been triggered: ', { analysis_id, resolution, updated_by, actions });
+
+        res.json({ success: true, message: 'No asset resolution updated successfully' });
+    } catch (err) {
+        console.log('Unable to update no asset resolution: ', err);
+        res.status(500).json({ success: false, message: 'Failed to update no asset resolution' });
+    }
+})
+
+router.post('/upload-documentation-report', upload.fields([
+    { name: 'oil_before', maxCount: 1 },
+    { name: 'oil_after', maxCount: 1 }
+]), async (req, res) => {
+    const currentTimestamp = new Date();
+
+    try {
+        const {
+            analysis_id,
+            updated_by
+        } = req.body;
+
+        if (!req.files || !req.files['oil_before'] || !req.files['oil_after']) {
+            return res.status(400).json({ error: 'Both oil_before and oil_after files are required.' });
+        }
+
+        const oilBeforePath = `documentation/${req.files['oil_before'][0].filename}`;
+        const oilAfterPath = `documentation/${req.files['oil_after'][0].filename}`;
+
+        await knex('no_asset_analysis_master').where('analysis_id', analysis_id).update({
+            oil_before: oilBeforePath,
+            oil_after: oilAfterPath,
+            updated_by,
+
+            updated_at: currentTimestamp
+        });
+
+        await knex('no_asset_analysis_logs').insert({
+            asset_analysis_id: analysis_id,
+            changes_made: `${updated_by} uploaded documentation for analysis ID: ${analysis_id}`,
+            created_by: updated_by,
+            created_at: currentTimestamp
+        });
+
+        console.log('@@@ TRIGGERED /upload-documentation-report');
+
+
+        //----------------------------------EMAIL FUNCTION----------------------------------------------
+        try {
+            const transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_HOST,
+                secure: false,
+                auth: {
+                    user: process.env.EMAIL,
+                    pass: process.env.EMAIL_PASS
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+
+            const level2_users = await knex('users_master').select('*').where('emp_position', 'l3');
+            const level2_email = level2_users.map(email => email.emp_email);
+
+            const analysis = await knex('no_asset_analysis_master').where('analysis_id', analysis_id).first();
+
+            // const asset = await knex('assets_master').where('asset_id', analysis_report.asset_id).first();
+
+            // Start
+            var start =
+                'Good Day,<br><br>' +
+                'This is to notify you that the <b>Oil Analysis Report</b> has been fully reviewed, approved, and finalized with the completion of the final documentation process. ' +
+                'Please find the report details below for your reference.<br><br>';
+
+
+            // Body
+            var body =
+                `<b>Report ID:</b> ${analysis_id}<br>
+                <b>Oil Batch Code:</b> ${analysis.oil_batch_code}<br>
+                <b>Drum Number:</b> ${analysis.input_drum_number}<br>
+                
+                <b>Manufacturing Date:</b> ${analysis.manufacturing_date}<br>
+                <b>Analysis Date:</b> ${analysis.analysis_date}<br>
+                <b>Created By:</b> ${analysis.created_by}<br>
+                <b>Updated By:</b> ${updated_by}<br>
+                <b>Recommendations:</b><br>
+                ${analysis.recommendations}<br><br>`;
+
+            // Link
+            var link =
+                'The finalized New Oil Analysis Report is now available for your reference. ' +
+                'Please use the link below to view the completed report:<br>' +
+                `<a href="${process.env.REACT_CLIENT}/view-submitted-asset-no-asset?id=${analysis_id}">
+                View Oil Analysis Report
+                 </a><br><br>`;
+
+            // Footer
+            var footer =
+                'The Oil Analysis Report has been successfully finalized and documented in accordance with the Asset Reliability workflow. ' +
+                'Please retain this report for your records and implement any necessary follow-up actions as appropriate.<br><br>' +
+                'For additional information or assistance regarding this report, please contact the Asset Reliability Monitoring Team.<br><br>' +
+                'Thank you for your attention and cooperation.<br><br>' +
+                'Best regards,<br><br>' +
+                '<b>Asset Reliability Monitoring System</b>';
+
+            // No Reply
+            var norep =
+                '<br><hr style="border:0; border-top:1px solid #d3d3d3;"><br>' +
+                '<div style="color:#808080; font-size:12px; font-family:Arial, sans-serif; line-height:1.5;">' +
+                '<b>This is an automated email from the Asset Reliability Monitoring System.</b><br>' +
+                'Please do not reply to this email, as this mailbox is not monitored and responses will not be received.<br><br>' +
+                'For assistance regarding this report or the final documentation process, please contact the Asset Reliability Monitoring Team through the appropriate support channels.<br><br>' +
+                '&copy; ' + new Date().getFullYear() + ' Asset Reliability Monitoring System. All rights reserved.' +
+                '</div>';
+
+            var emailContent = start + body + link + footer + norep;
+
+            // Email for all helpdesk personnel
+            const mailOption = {
+                from: process.env.EMAIL,
+                to: level2_email,
+                subject: `ARMS Notification - New Oil Analysis Report Completed - ${analysis.oil_batch_code}`,
+                html: emailContent
+            }
+            await transporter.sendMail(mailOption);
+            console.log('EEEEEEEEEEEEEEEEEEEEEMMMMMMMMMMMMMMMMMMAAAAAAAAAAAAAAAAAIIIIIIIIIIIILLLLLLLLLLLLLLLLLLLL SEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNT')
+        } catch (err) {
+            console.log('UNABLE TO SEND EMAILLLLL!!!! : ', err)
+        }
+
+
+
+        res.status(200).json({
+            message: 'Documentation uploaded successfully',
+            oil_before: oilBeforePath,
+            oil_after: oilAfterPath
+        });
+
+    } catch (err) {
+        console.error('Unable to upload documentation report:', err);
+        res.status(500).json({ error: 'Internal server error', message: err.message });
+    }
+});
+
+
+router.post('/upload-documentation-report-assets', upload.fields([
+    { name: 'asset_before', maxCount: 1 },
+    { name: 'asset_after', maxCount: 1 }
+]), async (req, res) => {
+    const currentTimestamp = new Date();
+
+    try {
+        const { asset_analysis_id, results, actions, updated_by } = req.body;
+
+        if (!asset_analysis_id) {
+            return res.status(400).json({ error: 'asset_analysis_id is required.' });
+        }
+
+        const updateData = {
+            results,
+            actions,
+            updated_by,
+            updated_at: currentTimestamp
+        };
+
+        if (req.files?.['asset_before']?.[0]) {
+            updateData.asset_before = `documentation/${req.files['asset_before'][0].filename}`;
+        }
+        if (req.files?.['asset_after']?.[0]) {
+            updateData.asset_after = `documentation/${req.files['asset_after'][0].filename}`;
+        }
+
+        await knex('asset_analysis_master')
+            .where('asset_analysis_id', asset_analysis_id)
+            .update(updateData);
+
+        await knex('asset_analysis_logs').insert({
+            asset_analysis_id,
+            changes_made: `${updated_by} submitted report documentation for analysis ID: ${asset_analysis_id}`,
+            created_by: updated_by,
+            created_at: currentTimestamp
+        });
+
+        console.log('@@@ TRIGGERED /upload-documentation-report-assets');
+
+        //----------------------------------EMAIL FUNCTION----------------------------------------------
+        try {
+            const transporter = nodemailer.createTransport({
+                host: process.env.EMAIL_HOST,
+                secure: false,
+                auth: {
+                    user: process.env.EMAIL,
+                    pass: process.env.EMAIL_PASS
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            });
+
+            const level2_users = await knex('users_master').select('*').where('emp_position', 'l2');
+            const level2_email = level2_users.map(email => email.emp_email);
+
+            const analysis_report = await knex('asset_analysis_master').where('asset_analysis_id', asset_analysis_id).first();
+
+            const asset = await knex('assets_master').where('asset_id', analysis_report.asset_id).first();
+
+            // Start
+            var start =
+                'Good Day,<br><br>' +
+                'This is to notify you that the <b>Asset Analysis Report</b> has been fully reviewed, approved, and finalized with the completion of the final documentation process. ' +
+                'Please find the report details below for your reference.<br><br>';
+            // Body
+            var body =
+                `<b>Report ID:</b> ${asset_analysis_id}<br>
+                <b>Asset Name:</b> ${asset.asset_name}<br>
+                <b>Asset Location:</b> ${asset.asset_location}<br>
+                <b>Approved By:</b> ${updated_by} <br>
+                <b>Recommendations:</b><br>
+                ${analysis_report.recommendations}<br><br>`;
+
+            // Link
+            var link =
+                'The finalized Asset Analysis Report is now available for your reference. ' +
+                'Please use the link below to view the completed report:<br>' +
+                `<a href="${process.env.REACT_CLIENT}/view-submitted-asset?id=${asset_analysis_id}">
+                View Asset Analysis Report
+                 </a><br><br>`;
+
+            // Footer
+            var footer =
+                'The Asset Analysis Report has been successfully finalized and documented in accordance with the Asset Reliability workflow. ' +
+                'Please retain this report for your records and implement any necessary follow-up actions as appropriate.<br><br>' +
+                'For additional information or assistance regarding this report, please contact the Asset Reliability Monitoring Team.<br><br>' +
+                'Thank you for your attention and cooperation.<br><br>' +
+                'Best regards,<br><br>' +
+                '<b>Asset Reliability Monitoring System</b>';
+
+            // No Reply
+            var norep =
+                '<br><hr style="border:0; border-top:1px solid #d3d3d3;"><br>' +
+                '<div style="color:#808080; font-size:12px; font-family:Arial, sans-serif; line-height:1.5;">' +
+                '<b>This is an automated email from the Asset Reliability Monitoring System.</b><br>' +
+                'Please do not reply to this email, as this mailbox is not monitored and responses will not be received.<br><br>' +
+                'For assistance regarding this report or the final documentation process, please contact the Asset Reliability Monitoring Team through the appropriate support channels.<br><br>' +
+                '&copy; ' + new Date().getFullYear() + ' Asset Reliability Monitoring System. All rights reserved.' +
+                '</div>';
+
+            var emailContent = start + body + link + footer + norep;
+
+            // Email for all helpdesk personnel
+            const mailOption = {
+                from: process.env.EMAIL,
+                to: level2_email,
+                subject: `ARMS Notification - Asset Analysis Report Completed - ${asset.asset_name}`,
+                html: emailContent
+            }
+            await transporter.sendMail(mailOption);
+            console.log('EEEEEEEEEEEEEEEEEEEEEMMMMMMMMMMMMMMMMMMAAAAAAAAAAAAAAAAAIIIIIIIIIIIILLLLLLLLLLLLLLLLLLLL SEEEEEEEEEEEEEEEENNNNNNNNNNNNNNNT')
+        } catch (err) {
+            console.log('UNABLE TO SEND EMAILLLLL!!!! : ', err)
+        }
+
+        res.status(200).json({
+            message: 'Report documentation saved successfully',
+            asset_before: updateData.asset_before || null,
+            asset_after: updateData.asset_after || null
+        });
+
+    } catch (err) {
+        console.error('Unable to upload documentation report (assets):', err);
+        res.status(500).json({ error: 'Internal server error', message: err.message });
+    }
+});
+
+
 
 module.exports = router;

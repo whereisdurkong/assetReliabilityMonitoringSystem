@@ -25,16 +25,18 @@ export default function ViewUser() {
         title: '',
         description: ''
     });
-
+    const [profileImage, setProfileImage] = useState(null);
     // Form state for editing
     const [formData, setFormData] = useState({
         emp_firstname: '',
         emp_lastname: '',
         user_name: '',
         emp_position: '',
+        emp_department: '',
         pass_word: '',
         emp_role: '',
-        emp_email: ''
+        emp_email: '',
+        avatar: ''
     });
 
     const currentUser = JSON.parse(localStorage.getItem("user"))?.user_name || '';
@@ -54,10 +56,17 @@ export default function ViewUser() {
                     emp_lastname: data.emp_lastname || '',
                     user_name: data.user_name || '',
                     emp_position: data.emp_position || '',
+                    emp_department: data.emp_department || '',
                     pass_word: '',
                     emp_role: data.emp_role || '',
-                    emp_email: data.emp_email || ''
+                    emp_email: data.emp_email || '',
+                    avatar: data.avatar || '' // Add this
                 });
+
+                if (data.avatar) {
+                    setProfileImage(`${config.baseApi}/${data.avatar}`);
+                }
+
                 setError(null);
             } catch (err) {
                 console.error('Unable to fetch data: ', err);
@@ -91,6 +100,7 @@ export default function ViewUser() {
             emp_lastname: userData.emp_lastname || '',
             user_name: userData.user_name || '',
             emp_position: userData.emp_position || '',
+            emp_department: userData.emp_department || '',
             pass_word: '',
             emp_role: userData.emp_role || '',
             emp_email: userData.emp_email || ''
@@ -129,6 +139,10 @@ export default function ViewUser() {
         }
         if (!formData.emp_position) {
             showAlertMessage('warning', 'Missing Information', 'Please select a position');
+            return false;
+        }
+        if (!formData.emp_department) {
+            showAlertMessage('warning', 'Missing Information', 'Please select a department');
             return false;
         }
 
@@ -204,6 +218,7 @@ export default function ViewUser() {
                 emp_email: formData.emp_email,
                 emp_role: formData.emp_role,
                 emp_position: formData.emp_position,
+                emp_department: formData.emp_department,
                 updated_by: currentUser
             })
 
@@ -214,6 +229,7 @@ export default function ViewUser() {
                 emp_lastname: formData.emp_lastname,
                 user_name: formData.user_name,
                 emp_email: formData.emp_email,
+                emp_department: formData.emp_department,
                 emp_role: formData.emp_role,
                 emp_position: formData.emp_position,
                 updated_by: currentUser
@@ -229,7 +245,8 @@ export default function ViewUser() {
                 user_name: formData.user_name,
                 emp_email: formData.emp_email,
                 emp_role: formData.emp_role,
-                emp_position: formData.emp_position
+                emp_position: formData.emp_position,
+                emp_department: formData.emp_department
             };
             setUserData(updatedUserData);
 
@@ -320,6 +337,22 @@ export default function ViewUser() {
     }
 
     const roleInfo = getRoleBadgeVariant(userData?.emp_role);
+
+
+    const getDepartmentFormat = (department) => {
+        switch (department) {
+            case 'mms':
+                return 'MMS';
+            case 'mme_mwso':
+                return 'MME & MWSO';
+            case 'smed':
+                return 'SMED';
+            case 'assay':
+                return 'ASSAY';
+            default:
+                return department;
+        }
+    }
 
     return (
         <div style={{
@@ -786,9 +819,22 @@ export default function ViewUser() {
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             border: '2px solid #ffc933',
-                                            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.3)'
+                                            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.3)',
+                                            overflow: 'hidden' // Add this to clip the image to circle
                                         }}>
-                                            <FeatherIcon icon="user" size={44} style={{ color: '#ff8800' }} />
+                                            {userData?.avatar ? (
+                                                <img
+                                                    src={profileImage}
+                                                    alt="Profile"
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        objectFit: 'cover'
+                                                    }}
+                                                />
+                                            ) : (
+                                                <FeatherIcon icon="user" size={44} style={{ color: '#ff8800' }} />
+                                            )}
                                         </div>
                                         <div>
                                             {!isEditing ? (
@@ -928,6 +974,7 @@ export default function ViewUser() {
                                                     >
                                                         <option value="user">User</option>
                                                         <option value="admin">Admin</option>
+                                                        <option value="mis_admin">MIS - Admin</option>
                                                     </Form.Select>
                                                 </div>
 
@@ -1045,11 +1092,19 @@ export default function ViewUser() {
                                                                 </div>
                                                             </div>
 
-                                                            <div>
+                                                            <div style={{ marginBottom: '15px' }}>
                                                                 <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', fontWeight: 600 }}>Position Level</div>
                                                                 <div style={{ fontSize: '15px', fontWeight: 600, color: '#0F172A', padding: '5px 0', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                                     <FeatherIcon icon="layers" size={14} style={{ color: '#ff9100' }} />
                                                                     {getPositionLabel(userData.emp_position)}
+                                                                </div>
+                                                            </div>
+
+                                                            <div>
+                                                                <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'uppercase', fontWeight: 600 }}>Department</div>
+                                                                <div style={{ fontSize: '15px', fontWeight: 600, color: '#0F172A', padding: '5px 0', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                    <FeatherIcon icon="layers" size={14} style={{ color: '#ff9100' }} />
+                                                                    {getDepartmentFormat(userData.emp_department)}
                                                                 </div>
                                                             </div>
                                                         </>
@@ -1106,7 +1161,7 @@ export default function ViewUser() {
                                                                     onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
                                                                 />
                                                             </div>
-                                                            <div style={{ marginBottom: '20px' }}>
+                                                            <div style={{ marginBottom: '15px' }}>
                                                                 <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>Username</div>
                                                                 <Form.Control
                                                                     type="text"
@@ -1122,6 +1177,40 @@ export default function ViewUser() {
                                                                     onFocus={(e) => e.target.style.borderColor = '#E37239'}
                                                                     onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
                                                                 />
+                                                            </div>
+
+                                                            <div style={{ marginBottom: '8px' }}>
+                                                                <div style={{ fontSize: '11px', color: '#64748B', marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>Department</div>
+
+                                                                <Form.Select
+                                                                    name="emp_department"
+                                                                    value={formData.emp_department}
+                                                                    onChange={handleInputChange}
+                                                                    // style={{
+                                                                    //     background: 'white',
+                                                                    //     border: '2px solid #E2E8F0',
+                                                                    //     borderRadius: '40px',
+                                                                    //     padding: '8px 16px',
+                                                                    //     fontSize: '12px',
+                                                                    //     fontWeight: 600,
+                                                                    //     width: '100%',
+                                                                    //     minWidth: '200px'
+                                                                    // }}
+                                                                    style={{
+                                                                        border: '2px solid #E2E8F0',
+                                                                        borderRadius: '12px',
+                                                                        padding: '10px 14px',
+                                                                        fontSize: '14px'
+                                                                    }}
+                                                                    onFocus={(e) => e.target.style.borderColor = '#ca7300'}
+                                                                    onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                                                >
+                                                                    <option value="">Select Department</option>
+                                                                    <option value="mme_mwso">MME & MWSO</option>
+                                                                    <option value="mms">MMS</option>
+                                                                    <option value="smed">SMED</option>
+                                                                    <option value="assay">Assay</option>
+                                                                </Form.Select>
                                                             </div>
 
                                                         </>

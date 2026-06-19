@@ -23,18 +23,40 @@ export default function AllAssets() {
 
     const navigate = useNavigate();
 
+
+
     useEffect(() => {
         const fetchAssets = async () => {
             try {
-                const res = await axios.get(`${config.baseApi}/assets/get-all-assets`);
-                const data = res.data || [];
-                setAssets(data);
+                const [assetsRes, usersRes] = await Promise.all([
+                    axios.get(`${config.baseApi}/assets/get-all-assets`),
+                    axios.get(`${config.baseApi}/authentication/get-all-users`)
+                ]);
 
-                // Extract unique categories and locations for filters
-                const uniqueCategories = [...new Set(data.map(a => a.asset_category).filter(Boolean))];
-                const uniqueLocations = [...new Set(data.map(a => a.asset_location).filter(Boolean))];
+                const assetsData = assetsRes.data || [];
+                const usersData = usersRes.data || [];
+
+                // Build a lookup map: { username -> avatar path }
+                const avatarMap = {};
+                usersData.forEach(user => {
+                    if (user.user_name) {
+                        avatarMap[user.user_name] = user.avatar || null;
+                    }
+                });
+
+                // Attach avatar to each asset based on created_by
+                const assetsWithAvatars = assetsData.map(asset => ({
+                    ...asset,
+                    avatar: avatarMap[asset.created_by] || null
+                }));
+
+                setAssets(assetsWithAvatars);
+
+                const uniqueCategories = [...new Set(assetsData.map(a => a.asset_category).filter(Boolean))];
+                const uniqueLocations = [...new Set(assetsData.map(a => a.asset_location).filter(Boolean))];
                 setCategories(uniqueCategories);
                 setLocations(uniqueLocations);
+
             } catch (error) {
                 console.error('Error fetching assets:', error);
             } finally {
@@ -535,7 +557,35 @@ export default function AllAssets() {
                                                     {asset.is_active === '1' ? 'Active' : 'Inactive'}
                                                 </span>
                                             </td>
-                                            <td style={{ padding: '14px 20px', color: '#475569', fontSize: '0.85rem' }}>{asset.created_by || 'System'}</td>
+                                            <td style={{ padding: '14px 20px', color: '#475569', fontSize: '0.85rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <div style={{
+                                                        width: '22px', height: '22px', borderRadius: '50%',
+                                                        overflow: 'hidden', border: '1px solid #EAB56F',
+                                                        background: '#f3f4f6', flexShrink: 0,
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                    }}>
+                                                        {asset.avatar ? (
+                                                            <img
+                                                                src={`${config.baseApi}/${asset.avatar}`}
+                                                                alt={asset.created_by}
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                onError={(e) => {
+                                                                    e.target.style.display = 'none';
+                                                                    e.target.parentNode.innerHTML = `<span style="font-size:9px;font-weight:700;color:#EAB56F">${asset.created_by?.charAt(0)?.toUpperCase() || '?'}</span>`;
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <span style={{ fontSize: '9px', fontWeight: 700, color: '#EAB56F' }}>
+                                                                {asset.created_by?.charAt(0)?.toUpperCase() || '?'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <span style={{ fontSize: '0.7rem', color: '#64748B' }}>
+                                                        {asset.created_by || 'System'}
+                                                    </span>
+                                                </div>
+                                            </td>
                                             <td style={{ padding: '14px 20px' }}>
                                                 <button style={{
                                                     background: 'none', border: 'none', color: '#EAB56F', cursor: 'pointer',

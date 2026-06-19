@@ -15,7 +15,7 @@ export default function AssetMonitoring() {
     const [filteredLogs, setFilteredLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
+    const [logAvatars, setLogAvatars] = useState([]);
     // Date filter states
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -52,6 +52,24 @@ export default function AssetMonitoring() {
                 const assetLogs = allLogs.filter(log => log.asset_id === asset_id);
                 setMonitoringLogs(assetLogs);
                 setFilteredLogs(assetLogs);
+
+                // Fetch avatars for each log's created_by
+                const uniqueUsers = [...new Set(assetLogs.map(l => l.created_by).filter(Boolean))];
+
+                const avatarResults = await Promise.allSettled(
+                    uniqueUsers.map(username =>
+                        axios.get(`${config.baseApi}/authentication/get-by-username`, {
+                            params: { user_name: username }
+                        })
+                    )
+                );
+
+                const avatars = avatarResults.map((result, index) => ({
+                    created_by: uniqueUsers[index],
+                    avatar: result.status === 'fulfilled' ? result.value.data.avatar || null : null
+                }));
+
+                setLogAvatars(avatars);
 
                 if (assetLogs.length === 0) {
                     setError('No monitoring logs found for this asset');
@@ -494,7 +512,37 @@ export default function AssetMonitoring() {
                                                                 {formatDate(log.created_at)}
                                                             </td>
                                                             <td style={{ padding: '16px', verticalAlign: 'middle', fontSize: '0.85rem' }}>
-                                                                {log.created_by || '—'}
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                    {(() => {
+                                                                        const avatarObj = logAvatars.find(a => a.created_by === log.created_by);
+                                                                        const avatarUrl = avatarObj?.avatar;
+                                                                        return (
+                                                                            <div style={{
+                                                                                width: '24px', height: '24px', borderRadius: '50%',
+                                                                                overflow: 'hidden', border: '2px solid #EAB56F',
+                                                                                background: '#f3f4f6', flexShrink: 0,
+                                                                                display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                                            }}>
+                                                                                {avatarUrl ? (
+                                                                                    <img
+                                                                                        src={`${config.baseApi}/${avatarUrl}`}
+                                                                                        alt={log.created_by}
+                                                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                                        onError={(e) => {
+                                                                                            e.target.style.display = 'none';
+                                                                                            e.target.parentNode.innerHTML = `<span style="font-size:9px;font-weight:700;color:#EAB56F">${log.created_by?.charAt(0)?.toUpperCase() || '?'}</span>`;
+                                                                                        }}
+                                                                                    />
+                                                                                ) : (
+                                                                                    <span style={{ fontSize: '9px', fontWeight: '700', color: '#EAB56F' }}>
+                                                                                        {log.created_by?.charAt(0)?.toUpperCase() || '?'}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })()}
+                                                                    <span>{log.created_by || '—'}</span>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     );

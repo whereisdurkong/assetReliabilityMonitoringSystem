@@ -5,6 +5,7 @@
  * - Fetches and displays all users from the API
  * - Search functionality (by name, email, username)
  * - Role-based filtering (Admin/User)
+ * - Department-based filtering
  * - Responsive statistics cards showing totals
  * - Pagination to handle large datasets efficiently
  * - Loading states and empty states
@@ -23,6 +24,7 @@ export default function AllUsers() {
     const [loading, setLoading] = useState(true);     // Loading indicator
     const [searchTerm, setSearchTerm] = useState(""); // Search input value
     const [roleFilter, setRoleFilter] = useState("all"); // Role filter value
+    const [departmentFilter, setDepartmentFilter] = useState("all"); // Department filter value
     const [currentPage, setCurrentPage] = useState(1);   // Current pagination page
     const [usersPerPage] = useState(10);                  // Users per page (adjustable)
     const [statusFilter, setStatusFilter] = useState("all");
@@ -47,28 +49,43 @@ export default function AllUsers() {
     }, []);
 
     // ===== FILTERING LOGIC =====
-    // Filter users based on search term and role selection
+    // Filter users based on search term, role selection, and department selection
     const filteredUsers = users.filter(user => {
         const matchesSearch =
             user.emp_firstname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.emp_lastname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.emp_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.user_name?.toLowerCase().includes(searchTerm.toLowerCase());
+            user.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.emp_department?.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesRole = roleFilter === "all" || user.emp_role === roleFilter;
+
+        // Add department filtering
+        const matchesDepartment = departmentFilter === "all" || user.emp_department === departmentFilter;
 
         // Add status filtering
         const matchesStatus = statusFilter === "all" ||
             (statusFilter === "active" && user.is_active === true) ||
             (statusFilter === "inactive" && user.is_active === false);
 
-        return matchesSearch && matchesRole && matchesStatus;
+        return matchesSearch && matchesRole && matchesDepartment && matchesStatus;
     });
 
     // Reset to page 1 whenever filters change (prevents showing empty pages)
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, roleFilter, statusFilter]);
+    }, [searchTerm, roleFilter, departmentFilter, statusFilter]);
+
+    // Get unique departments from users for filter options
+    const getUniqueDepartments = () => {
+        const departments = new Set();
+        users.forEach(user => {
+            if (user.emp_department) {
+                departments.add(user.emp_department);
+            }
+        });
+        return Array.from(departments).sort();
+    };
 
     // ===== PAGINATION LOGIC =====
     // Calculate current page users
@@ -117,6 +134,21 @@ export default function AllUsers() {
             day: 'numeric',
             year: 'numeric'
         });
+    };
+
+    const formatDepartment = (dept) => {
+        if (!dept) return '—';
+
+        if (dept === 'mme_mwso') {
+            return 'MME & MWSO';
+        }
+        if (dept === 'mms') {
+            return 'MMS';
+        }
+        if (dept === 'smed') {
+            return 'SMED';
+        }
+        return dept.charAt(0).toUpperCase() + dept.slice(1);
     };
 
     // ===== PAGINATION COMPONENTS =====
@@ -444,19 +476,19 @@ export default function AllUsers() {
                     marginBottom: '24px',
                     justifyContent: 'flex-end',
                     flexWrap: 'wrap',
-                    alignItems: 'center'  // Add this to align all items vertically
+                    alignItems: 'center'
                 }}>
                     {/* Search Input */}
                     <div style={{
                         background: 'rgba(30, 41, 59, 0.7)',
                         backdropFilter: 'blur(12px)',
                         borderRadius: '12px',
-                        padding: '0 24px',  // Changed from '8px 24px' to '0 24px'
+                        padding: '0 24px',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
                         border: '2px solid #53535375',
-                        height: '48px'  // Fixed height
+                        height: '48px'
                     }}
                         onFocus={(e) => {
                             e.target.closest('div').style.borderColor = '#E37239';
@@ -478,14 +510,14 @@ export default function AllUsers() {
                                 color: '#E2E8F0',
                                 fontSize: '14px',
                                 minWidth: '240px',
-                                height: '100%'  // Match parent height
+                                height: '100%'
                             }}
 
                         />
                     </div>
 
                     {/* Role Filter Dropdown */}
-                    <div style={{ position: 'relative', height: '48px' }}>  {/* Fixed height wrapper */}
+                    <div style={{ position: 'relative', height: '48px', minWidth: '140px' }}>
                         <FeatherIcon
                             icon="user"
                             size={16}
@@ -497,7 +529,6 @@ export default function AllUsers() {
                                 transform: 'translateY(-50%)',
                                 zIndex: 1,
                                 pointerEvents: 'none',
-
                             }}
                         />
                         <select
@@ -508,14 +539,13 @@ export default function AllUsers() {
                                 backdropFilter: 'blur(12px)',
                                 border: '2px solid #53535375',
                                 borderRadius: '12px',
-                                padding: '0 22px 0 36px',  // Changed to vertical padding 0
+                                padding: '0 22px 0 36px',
                                 color: '#E2E8F0',
                                 fontSize: '14px',
                                 outline: 'none',
                                 cursor: 'pointer',
-                                height: '48px',  // Fixed height
+                                height: '48px',
                                 width: '100%',
-
                             }}
                             onFocus={(e) => e.target.style.borderColor = '#E37239'}
                             onBlur={(e) => e.target.style.borderColor = '#53535375'}
@@ -523,6 +553,49 @@ export default function AllUsers() {
                             <option value="all">All Roles</option>
                             <option value="admin">Admin</option>
                             <option value="user">User</option>
+                        </select>
+                    </div>
+
+                    {/* Department Filter Dropdown */}
+                    <div style={{ position: 'relative', height: '48px', minWidth: '160px' }}>
+                        <FeatherIcon
+                            icon="briefcase"
+                            size={16}
+                            color="#ffae00"
+                            style={{
+                                position: 'absolute',
+                                left: '12px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                zIndex: 1,
+                                pointerEvents: 'none',
+                            }}
+                        />
+                        <select
+                            value={departmentFilter}
+                            onChange={(e) => setDepartmentFilter(e.target.value)}
+                            style={{
+                                background: 'rgba(30, 41, 59, 0.7)',
+                                backdropFilter: 'blur(12px)',
+                                border: '2px solid #53535375',
+                                borderRadius: '12px',
+                                padding: '0 22px 0 36px',
+                                color: '#E2E8F0',
+                                fontSize: '14px',
+                                outline: 'none',
+                                cursor: 'pointer',
+                                height: '48px',
+                                width: '100%',
+                            }}
+                            onFocus={(e) => e.target.style.borderColor = '#E37239'}
+                            onBlur={(e) => e.target.style.borderColor = '#53535375'}
+                        >
+                            <option value="all">All Departments</option>
+                            {getUniqueDepartments().map(dept => (
+                                <option key={dept} value={dept}>
+                                    {formatDepartment(dept)}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
@@ -535,7 +608,7 @@ export default function AllUsers() {
                         border: '2px solid #53535375',
                         display: 'flex',
                         gap: '4px',
-                        height: '48px'  // Fixed height
+                        height: '48px'
                     }}
                         onFocus={(e) => {
                             e.target.closest('div').style.borderColor = '#E37239';
@@ -547,7 +620,7 @@ export default function AllUsers() {
                         <button
                             onClick={() => setStatusFilter("all")}
                             style={{
-                                padding: '0 16px',  // Changed from '8px 16px' to '0 16px'
+                                padding: '0 16px',
                                 borderRadius: '8px',
                                 border: 'none',
                                 background: statusFilter === "all" ? 'rgb(255, 153, 0)' : 'transparent',
@@ -556,7 +629,7 @@ export default function AllUsers() {
                                 fontSize: '13px',
                                 fontWeight: '600',
                                 transition: 'all 0.2s ease',
-                                height: '100%'  // Match parent height
+                                height: '100%'
                             }}
                         >
                             All
@@ -564,7 +637,7 @@ export default function AllUsers() {
                         <button
                             onClick={() => setStatusFilter("active")}
                             style={{
-                                padding: '0 16px',  // Changed from '8px 16px' to '0 16px'
+                                padding: '0 16px',
                                 borderRadius: '8px',
                                 border: 'none',
                                 background: statusFilter === "active" ? '#10B981' : 'transparent',
@@ -573,7 +646,7 @@ export default function AllUsers() {
                                 fontSize: '13px',
                                 fontWeight: '600',
                                 transition: 'all 0.2s ease',
-                                height: '100%',  // Match parent height
+                                height: '100%',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '6px'
@@ -585,7 +658,7 @@ export default function AllUsers() {
                         <button
                             onClick={() => setStatusFilter("inactive")}
                             style={{
-                                padding: '0 16px',  // Changed from '8px 16px' to '0 16px'
+                                padding: '0 16px',
                                 borderRadius: '8px',
                                 border: 'none',
                                 background: statusFilter === "inactive" ? '#EF4444' : 'transparent',
@@ -594,7 +667,7 @@ export default function AllUsers() {
                                 fontSize: '13px',
                                 fontWeight: '600',
                                 transition: 'all 0.2s ease',
-                                height: '100%',  // Match parent height
+                                height: '100%',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '6px'
@@ -617,7 +690,7 @@ export default function AllUsers() {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid rgba(71, 85, 105, 0.3)', background: '#1E293B' }}>
-                                    {['User', 'Contact', 'Role', 'Position', 'Status', 'Created', ''].map(header => (
+                                    {['User', 'Contact', 'Role', 'Position', 'Status', 'Created', 'Department'].map(header => (
                                         <th key={header} style={{
                                             textAlign: 'left',
                                             padding: '16px 20px',
@@ -656,11 +729,12 @@ export default function AllUsers() {
                                         <td colSpan="7" style={{ textAlign: 'center', padding: '60px 20px', color: '#64748B', background: '#FFFFFF' }}>
                                             <FeatherIcon icon="users" size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
                                             <p>No users found matching your criteria</p>
-                                            {(searchTerm || roleFilter !== 'all') && (
+                                            {(searchTerm || roleFilter !== 'all' || departmentFilter !== 'all') && (
                                                 <button
                                                     onClick={() => {
                                                         setSearchTerm('');
                                                         setRoleFilter('all');
+                                                        setDepartmentFilter('all');
                                                     }}
                                                     style={{
                                                         marginTop: '12px',
@@ -691,7 +765,7 @@ export default function AllUsers() {
                                             onClick={() => handleView(user)}
                                         >
                                             {/* User Info */}
-                                            < td style={{ padding: '16px 20px' }}>
+                                            <td style={{ padding: '16px 20px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                                     <div style={{
                                                         width: '40px',
@@ -752,32 +826,9 @@ export default function AllUsers() {
                                                 {formatDate(user.created_at)}
                                             </td>
 
-                                            {/* Actions Menu */}
-                                            <td style={{ padding: '16px 20px' }}>
-                                                <button style={{
-                                                    background: 'transparent',
-                                                    border: 'none',
-                                                    cursor: 'pointer',
-                                                    padding: '6px',
-                                                    borderRadius: '8px',
-                                                    color: '#64748B',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                                    onMouseEnter={(e) => {
-                                                        e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
-                                                        e.currentTarget.style.color = '#38BDF8';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.currentTarget.style.background = 'transparent';
-                                                        e.currentTarget.style.color = '#64748B';
-                                                    }}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        // Add dropdown menu or modal here
-                                                        console.log('Open actions for user:', user.id_master);
-                                                    }}>
-                                                    <FeatherIcon icon="more-vertical" size={18} />
-                                                </button>
+                                            {/* Department */}
+                                            <td style={{ padding: '16px 20px', color: '#334155', fontSize: '14px' }}>
+                                                {formatDepartment(user.emp_department)}
                                             </td>
                                         </tr>
                                     ))
@@ -805,14 +856,14 @@ export default function AllUsers() {
             </div >
 
             {/* Add shimmer animation for loading state */}
-            < style >
+            <style>
                 {`
                     @keyframes shimmer {
                         0% { background-position: -200% 0; }
                         100% { background-position: 200% 0; }
                     }
                 `}
-            </style >
+            </style>
         </div >
     );
 }

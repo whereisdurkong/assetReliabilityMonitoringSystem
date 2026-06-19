@@ -10,6 +10,8 @@
     "bootstrap": "5.3.3",
     "feather-icons-react": "^0.7.0",
     "framer-motion": "^12.38.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "lodash-es": "^4.17.21",
     "lucide-react": "^1.12.0",
     "react": "^18.3.1",

@@ -269,7 +269,7 @@ export default function SubmitAsset() {
 
         try {
             const oilResults = {};
-
+            const empInfo = JSON.parse(localStorage.getItem("user"));
             // Helper to get cleaned field value
             const getCleanedField = (fieldName) => {
                 const value = formData[fieldName];
@@ -427,6 +427,7 @@ export default function SubmitAsset() {
                 recommendations: formData.recommendation,
                 analysis_date: formData.analysisDate,
                 created_by: username,
+                created_by_user_id: empInfo.id_master,
                 additional_notes: formData.notes,
             };
 
@@ -800,7 +801,7 @@ export default function SubmitAsset() {
                                                                             <Form.Group>
                                                                                 <label style={labelStyle}>{metal.charAt(0).toUpperCase() + metal.slice(1)} {requiredStar}</label>
                                                                                 <div style={{ position: 'relative' }}>
-                                                                                    <Form.Control type="text" name={metal} value={formData[metal] || ''} onChange={handleInputChange} placeholder="0.00" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                    <Form.Control type="number" name={metal} value={formData[metal] || ''} onChange={handleInputChange} placeholder="0.00" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                         onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                     <span style={unitStyle}>ppm</span>
                                                                                 </div>
@@ -813,7 +814,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Fatigue &gt;20 μm {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="fatigue20" value={formData.fatigue20 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="fatigue20" value={formData.fatigue20 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>part./ml</span>
                                                                                     </div>
@@ -823,7 +824,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Non-Metallic &gt;20 μm {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="nonMetallic20" value={formData.nonMetallic20 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="nonMetallic20" value={formData.nonMetallic20 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>part./ml</span>
                                                                                     </div>
@@ -833,7 +834,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Large Fe {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="largeFe" value={formData.largeFe || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="largeFe" value={formData.largeFe || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>ppm</span>
                                                                                     </div>
@@ -842,7 +843,7 @@ export default function SubmitAsset() {
                                                                             <Col md={3}>
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Fe Wear Severity {requiredStar}</label>
-                                                                                    <Form.Control type="text" name="feWearSeverity" value={formData.feWearSeverity || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                    <Form.Control type="number" name="feWearSeverity" value={formData.feWearSeverity || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                         onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                 </Form.Group>
                                                                             </Col>
@@ -850,7 +851,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Total Fe &lt;100μ {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="totalFe100" value={formData.totalFe100 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="totalFe100" value={formData.totalFe100 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>ppm</span>
                                                                                     </div>
@@ -880,7 +881,7 @@ export default function SubmitAsset() {
                                                                             <Form.Group>
                                                                                 <label style={labelStyle}>{cont.charAt(0).toUpperCase() + cont.slice(1)} {requiredStar}</label>
                                                                                 <div style={{ position: 'relative' }}>
-                                                                                    <Form.Control type="text" name={cont} value={formData[cont] || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                    <Form.Control type="number" name={cont} value={formData[cont] || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                         onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                     <span style={unitStyle}>ppm</span>
                                                                                 </div>
@@ -893,7 +894,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Glycol % {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="glycol" value={formData.glycol || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="glycol" value={formData.glycol || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>%</span>
                                                                                     </div>
@@ -902,7 +903,7 @@ export default function SubmitAsset() {
                                                                             <Col md={3}>
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Bubbles {requiredStar}</label>
-                                                                                    <Form.Control type="text" name="bubbles" value={formData.bubbles || ''} onChange={handleInputChange} placeholder="Normal" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                    <Form.Control type="number" name="bubbles" value={formData.bubbles || ''} onChange={handleInputChange} placeholder="Normal" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                         onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                 </Form.Group>
                                                                             </Col>
@@ -910,7 +911,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Water {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="water" value={formData.water || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="water" value={formData.water || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>ppm</span>
                                                                                     </div>
@@ -920,7 +921,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Soot % {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="sootPercent" value={formData.sootPercent || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="sootPercent" value={formData.sootPercent || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>%</span>
                                                                                     </div>
@@ -930,7 +931,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Biodiesel Fuel Dilution {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="biodieselFuelDilution" value={formData.biodieselFuelDilution || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="biodieselFuelDilution" value={formData.biodieselFuelDilution || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>wt%</span>
                                                                                     </div>
@@ -941,7 +942,7 @@ export default function SubmitAsset() {
                                                                                     <Form.Group>
                                                                                         <label style={labelStyle}>Antiwear % {requiredStar}</label>
                                                                                         <div style={{ position: 'relative' }}>
-                                                                                            <Form.Control type="text" name="antiwear" value={formData.antiwear || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                            <Form.Control type="number" name="antiwear" value={formData.antiwear || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                                 onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                             <span style={unitStyle}>%</span>
                                                                                         </div>
@@ -955,21 +956,21 @@ export default function SubmitAsset() {
                                                                             <Col md={3}>
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>ISO 4406 (&gt;4 μm) {requiredStar}</label>
-                                                                                    <Form.Control type="text" name="iso4406_4" value={formData.iso4406_4 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                    <Form.Control type="number" name="iso4406_4" value={formData.iso4406_4 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                         onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                 </Form.Group>
                                                                             </Col>
                                                                             <Col md={3}>
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>ISO 4406 (&gt;6 μm) {requiredStar}</label>
-                                                                                    <Form.Control type="text" name="iso4406_6" value={formData.iso4406_6 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                    <Form.Control type="number" name="iso4406_6" value={formData.iso4406_6 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                         onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                 </Form.Group>
                                                                             </Col>
                                                                             <Col md={3}>
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>ISO 4406 (&gt;14 μm) {requiredStar}</label>
-                                                                                    <Form.Control type="text" name="iso4406_14" value={formData.iso4406_14 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                    <Form.Control type="number" name="iso4406_14" value={formData.iso4406_14 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                         onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                 </Form.Group>
                                                                             </Col>
@@ -977,7 +978,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Cnts &gt;4 {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="cnts4" value={formData.cnts4 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="cnts4" value={formData.cnts4 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>part./ml</span>
                                                                                     </div>
@@ -987,7 +988,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Cnts &gt;6 {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="cnts6" value={formData.cnts6 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="cnts6" value={formData.cnts6 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>part./ml</span>
                                                                                     </div>
@@ -997,7 +998,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Cnts &gt;14 {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="cnts14" value={formData.cnts14 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="cnts14" value={formData.cnts14 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>part./ml</span>
                                                                                     </div>
@@ -1007,7 +1008,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Particles 5-15 μm {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="particles5_15" value={formData.particles5_15 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="particles5_15" value={formData.particles5_15 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>part./100ml</span>
                                                                                     </div>
@@ -1017,7 +1018,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Particles 15-25 μm {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="particles15_25" value={formData.particles15_25 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="particles15_25" value={formData.particles15_25 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>part./100ml</span>
                                                                                     </div>
@@ -1027,7 +1028,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Particles 25-50 μm {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="particles25_50" value={formData.particles25_50 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="particles25_50" value={formData.particles25_50 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>part./100ml</span>
                                                                                     </div>
@@ -1037,7 +1038,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Particles 50-100 μm {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="particles50_100" value={formData.particles50_100 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="particles50_100" value={formData.particles50_100 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>part./100ml</span>
                                                                                     </div>
@@ -1047,7 +1048,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Particles &gt;100μm {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="particles100" value={formData.particles100 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="particles100" value={formData.particles100 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>part./100ml</span>
                                                                                     </div>
@@ -1057,7 +1058,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Cutting &gt;20μm {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="cutting20" value={formData.cutting20 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="cutting20" value={formData.cutting20 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>part./ml</span>
                                                                                     </div>
@@ -1067,7 +1068,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Sliding &gt;20μm {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="sliding20" value={formData.sliding20 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="sliding20" value={formData.sliding20 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>part./ml</span>
                                                                                     </div>
@@ -1077,7 +1078,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Total Water {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="totalWater" value={formData.totalWater || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="totalWater" value={formData.totalWater || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>ppm</span>
                                                                                     </div>
@@ -1087,7 +1088,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Bubbles {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="bubbles" value={formData.bubbles || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="bubbles" value={formData.bubbles || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>%</span>
                                                                                     </div>
@@ -1097,7 +1098,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Water Content {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="waterContent" value={formData.waterContent || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="waterContent" value={formData.waterContent || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>ppm</span>
                                                                                     </div>
@@ -1107,7 +1108,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Large Fe % {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="largeFePercent" value={formData.largeFePercent || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="largeFePercent" value={formData.largeFePercent || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>%</span>
                                                                                     </div>
@@ -1137,7 +1138,7 @@ export default function SubmitAsset() {
                                                                             <Form.Group>
                                                                                 <label style={labelStyle}>{chem.charAt(0).toUpperCase() + chem.slice(1)} {requiredStar}</label>
                                                                                 <div style={{ position: 'relative' }}>
-                                                                                    <Form.Control type="text" name={chem} value={formData[chem] || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                    <Form.Control type="number" name={chem} value={formData[chem] || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                         onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                     <span style={unitStyle}>ppm</span>
                                                                                 </div>
@@ -1149,7 +1150,7 @@ export default function SubmitAsset() {
                                                                             <Form.Group>
                                                                                 <label style={labelStyle}>TBN {requiredStar}</label>
                                                                                 <div style={{ position: 'relative' }}>
-                                                                                    <Form.Control type="text" name="tbn" value={formData.tbn || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                    <Form.Control type="number" name="tbn" value={formData.tbn || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                         onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                     <span style={unitStyle}>mg KOH/g</span>
                                                                                 </div>
@@ -1161,7 +1162,7 @@ export default function SubmitAsset() {
                                                                             <Form.Group>
                                                                                 <label style={labelStyle}>TAN {requiredStar}</label>
                                                                                 <div style={{ position: 'relative' }}>
-                                                                                    <Form.Control type="text" name="tan" value={formData.tan || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                    <Form.Control type="number" name="tan" value={formData.tan || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                         onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                     <span style={unitStyle}>mg KOH/g</span>
                                                                                 </div>
@@ -1174,7 +1175,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Oxidation {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="oxidation" value={formData.oxidation || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="oxidation" value={formData.oxidation || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>abs/0.1mm</span>
                                                                                     </div>
@@ -1184,7 +1185,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Nitration {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="nitration" value={formData.nitration || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="nitration" value={formData.nitration || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>abs/cm</span>
                                                                                     </div>
@@ -1194,7 +1195,7 @@ export default function SubmitAsset() {
                                                                                 <Form.Group>
                                                                                     <label style={labelStyle}>Sulfation {requiredStar}</label>
                                                                                     <div style={{ position: 'relative' }}>
-                                                                                        <Form.Control type="text" name="sulfation" value={formData.sulfation || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                        <Form.Control type="number" name="sulfation" value={formData.sulfation || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                             onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                         <span style={unitStyle}>abs/0.1mm</span>
                                                                                     </div>
@@ -1207,7 +1208,7 @@ export default function SubmitAsset() {
                                                                             <Form.Group>
                                                                                 <label style={labelStyle}>Oxidation {requiredStar}</label>
                                                                                 <div style={{ position: 'relative' }}>
-                                                                                    <Form.Control type="text" name="oxidation" value={formData.oxidation || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                    <Form.Control type="number" name="oxidation" value={formData.oxidation || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                         onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                     <span style={unitStyle}>abs/cm</span>
                                                                                 </div>
@@ -1218,7 +1219,7 @@ export default function SubmitAsset() {
                                                                         <Form.Group>
                                                                             <label style={labelStyle}>Viscosity at 40°C {requiredStar}</label>
                                                                             <div style={{ position: 'relative' }}>
-                                                                                <Form.Control type="text" name="viscosity40" value={formData.viscosity40 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                <Form.Control type="number" name="viscosity40" value={formData.viscosity40 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                     onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                 <span style={unitStyle}>cSt</span>
                                                                             </div>
@@ -1228,7 +1229,7 @@ export default function SubmitAsset() {
                                                                         <Form.Group>
                                                                             <label style={labelStyle}>Viscosity at 100°C {requiredStar}</label>
                                                                             <div style={{ position: 'relative' }}>
-                                                                                <Form.Control type="text" name="viscosity100" value={formData.viscosity100 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                <Form.Control type="number" name="viscosity100" value={formData.viscosity100 || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                     onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                 <span style={unitStyle}>cSt</span>
                                                                             </div>
@@ -1239,7 +1240,7 @@ export default function SubmitAsset() {
                                                                             <Form.Group>
                                                                                 <label style={labelStyle}>Antiwear % {requiredStar}</label>
                                                                                 <div style={{ position: 'relative' }}>
-                                                                                    <Form.Control type="text" name="antiwear" value={formData.antiwear || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                                    <Form.Control type="number" name="antiwear" value={formData.antiwear || ''} onChange={handleInputChange} placeholder="0" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                         onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                                     <span style={unitStyle}>%</span>
                                                                                 </div>
@@ -1249,7 +1250,7 @@ export default function SubmitAsset() {
                                                                     <Col md={3}>
                                                                         <Form.Group>
                                                                             <label style={labelStyle}>Fluid Integrity {requiredStar}</label>
-                                                                            <Form.Control type="text" name="fluidIntegrity" value={formData.fluidIntegrity || ''} onChange={handleInputChange} placeholder="Rating" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                                            <Form.Control type="number" name="fluidIntegrity" value={formData.fluidIntegrity || ''} onChange={handleInputChange} placeholder="Rating" style={inputStyle} onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
                                                                                 onBlur={(e) => e.target.style.borderColor = '#E2E8F0'} />
                                                                         </Form.Group>
                                                                     </Col>
@@ -1305,7 +1306,9 @@ export default function SubmitAsset() {
                                             <button type="submit" disabled={isLoading} style={{
                                                 background: 'linear-gradient(135deg, #EAB56F, #F9982F)', border: 'none', borderRadius: '12px', padding: '12px 32px', color: 'white', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '10px', cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1
                                             }} onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
-                                                onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}>{isLoading ? <><Spinner animation="border" size="sm" /> Submitting...</> : <>Submit Report <FeatherIcon icon="check-circle" size={16} /></>}</button>
+                                                onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}>{isLoading ? <><Spinner animation="border" size="sm" /> Submitting...</> : <>Submit Report <FeatherIcon icon="check-circle" size={16} /></>}
+                                            </button>
+
                                         </div>
                                     </motion.div>
                                 )}

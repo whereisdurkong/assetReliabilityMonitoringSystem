@@ -1,4 +1,3 @@
-
 import { Form, Container, Row, Col, Button, Card, InputGroup, Badge } from 'react-bootstrap';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -10,7 +9,7 @@ import AlertModal from '../../components/personalComponents/alertModal';
 import FeatherIcon from 'feather-icons-react';
 
 export default function SetupOption() {
-    const [assetLocations, setAssetLocations] = useState(['']);
+    const [assetLocations, setAssetLocations] = useState([{ location: '', subLocation: '' }]);
     const [assetTypes, setAssetTypes] = useState(['']);
     const [assetCategories, setAssetCategories] = useState(['']);
     const [componentTypes, setComponentTypes] = useState(['']);
@@ -37,7 +36,7 @@ export default function SetupOption() {
 
     useEffect(() => {
         setStats({
-            locations: assetLocations.filter(l => l.trim()).length,
+            locations: assetLocations.filter(l => l.location.trim() && l.subLocation.trim()).length,
             types: assetTypes.filter(t => t.trim()).length,
             categories: assetCategories.filter(c => c.trim()).length,
             components: componentTypes.filter(c => c.trim()).length
@@ -49,7 +48,20 @@ export default function SetupOption() {
         setShowAlert(true);
     };
 
-    // Generic handlers for dynamic arrays
+    // Location-specific handlers
+    const addLocation = () => setAssetLocations([...assetLocations, { location: '', subLocation: '' }]);
+
+    const updateLocation = (index, field, value) => {
+        const updated = [...assetLocations];
+        updated[index] = { ...updated[index], [field]: value };
+        setAssetLocations(updated);
+    };
+
+    const removeLocation = (index) => {
+        setAssetLocations(assetLocations.filter((_, i) => i !== index));
+    };
+
+    // Generic handlers for other dynamic arrays
     const addItem = (setter, currentArray) => {
         setter([...currentArray, '']);
     };
@@ -66,7 +78,23 @@ export default function SetupOption() {
     };
 
     const Validation = () => {
-        const hasAnyInput = assetLocations.some(loc => loc.trim() !== '') ||
+        // Check each location row: both fields must be filled together
+        for (let i = 0; i < assetLocations.length; i++) {
+            const { location, subLocation } = assetLocations[i];
+            if (location.trim() && !subLocation.trim()) {
+                showAlertMessage('error', 'Missing Sub-location',
+                    `Row ${i + 1}: please enter a sub-location for "${location}".`);
+                return false;
+            }
+            if (!location.trim() && subLocation.trim()) {
+                showAlertMessage('error', 'Missing Location',
+                    `Row ${i + 1}: please enter a location name for sub-location "${subLocation}".`);
+                return false;
+            }
+        }
+
+        const hasAnyInput =
+            assetLocations.some(l => l.location.trim()) ||
             assetTypes.some(type => type.trim() !== '') ||
             assetCategories.some(cat => cat.trim() !== '') ||
             componentTypes.some(comp => comp.trim() !== '');
@@ -84,19 +112,16 @@ export default function SetupOption() {
             const res = await axios.get(`${config.baseApi}/assetsAnalysis/get-all-options`);
             const existingData = res.data || [];
 
-            if (existingData.length === 0) {
-                return false; // No existing data, no duplicates
-            }
+            if (existingData.length === 0) return false;
 
-            // Get valid (non-empty) values
-            const validAssetLocations = assetLocations.filter(loc => loc.trim() !== '');
+            const validAssetLocations = assetLocations
+                .filter(l => l.location.trim() && l.subLocation.trim())
+                .map(l => `${l.location.trim()} - ${l.subLocation.trim()}`);
             const validAssetTypes = assetTypes.filter(type => type.trim() !== '');
             const validAssetCategories = assetCategories.filter(cat => cat.trim() !== '');
             const validComponentTypes = componentTypes.filter(comp => comp.trim() !== '');
 
-            // Check each existing record for duplicate combination
             for (const existingRecord of existingData) {
-                // Parse existing records (they might be stored as strings or arrays)
                 const existingLocations = existingRecord.option_asset_location
                     ? (Array.isArray(existingRecord.option_asset_location)
                         ? existingRecord.option_asset_location
@@ -121,53 +146,29 @@ export default function SetupOption() {
                         : existingRecord.option_component_types.split('/').map(item => item.trim()))
                     : [];
 
-                // Check if ALL arrays match exactly (same length and same values)
                 const isLocationsDuplicate = arraysEqual(validAssetLocations.sort(), existingLocations.sort());
                 const isTypesDuplicate = arraysEqual(validAssetTypes.sort(), existingTypes.sort());
                 const isCategoriesDuplicate = arraysEqual(validAssetCategories.sort(), existingCategories.sort());
                 const isComponentsDuplicate = arraysEqual(validComponentTypes.sort(), existingComponents.sort());
 
-                // If ALL four fields match exactly, it's a duplicate
                 if (isLocationsDuplicate && isTypesDuplicate && isCategoriesDuplicate && isComponentsDuplicate) {
                     showAlertMessage(
                         'error',
                         'Duplicate Configuration',
-                        'This exact combination of Locations, Types, Categories, and Component Types already exists. Please modify your entries.'
+                        'This exact combination already exists. Please modify your entries.'
                     );
-                    return true; // Duplicate found
-                }
-
-                // Optional: Check for partial duplicates (if any field matches exactly with existing)
-                // Uncomment if you want to prevent any duplicate field values
-                /*
-                if (isLocationsDuplicate) {
-                    showAlertMessage('error', 'Duplicate Locations', 'These locations already exist in the system.');
                     return true;
                 }
-                if (isTypesDuplicate) {
-                    showAlertMessage('error', 'Duplicate Types', 'These asset types already exist in the system.');
-                    return true;
-                }
-                if (isCategoriesDuplicate) {
-                    showAlertMessage('error', 'Duplicate Categories', 'These categories already exist in the system.');
-                    return true;
-                }
-                if (isComponentsDuplicate) {
-                    showAlertMessage('error', 'Duplicate Component Types', 'These component types already exist in the system.');
-                    return true;
-                }
-                */
             }
 
-            return false; // No duplicate found
+            return false;
         } catch (err) {
             console.error('Unable to fetch existing options: ', err);
             showAlertMessage('error', 'Validation Error', 'Unable to verify duplicates. Please try again.');
-            return true; // Treat as duplicate to prevent submission
+            return true;
         }
     };
 
-    // Helper function to compare two arrays
     const arraysEqual = (arr1, arr2) => {
         if (arr1.length !== arr2.length) return false;
         for (let i = 0; i < arr1.length; i++) {
@@ -185,14 +186,15 @@ export default function SetupOption() {
             return;
         }
 
-        // Check for duplicate combinations
         const isDuplicate = await checkForDuplicateCombination();
         if (isDuplicate) {
             setIsLoading(false);
             return;
         }
 
-        const validAssetLocations = assetLocations.filter(location => location.trim() !== '');
+        const validAssetLocations = assetLocations
+            .filter(l => l.location.trim() && l.subLocation.trim())
+            .map(l => `${l.location.trim()} - ${l.subLocation.trim()}`);
         const validAssetTypes = assetTypes.filter(type => type.trim() !== '');
         const validAssetCategories = assetCategories.filter(category => category.trim() !== '');
         const validComponentTypes = componentTypes.filter(component => component.trim() !== '');
@@ -219,13 +221,153 @@ export default function SetupOption() {
         setIsLoading(false);
     };
 
+    // Location section with two inputs per row
+    const renderLocationSection = () => {
+        const validCount = assetLocations.filter(l => l.location.trim() && l.subLocation.trim()).length;
+        const color = '#3b82f6';
+        const gradientColor = '#60a5fa';
+
+        return (
+            <Card className="h-100 border-0" style={{
+                borderRadius: '20px',
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                overflow: 'hidden',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
+            }}>
+                <Card.Header style={{
+                    background: `linear-gradient(135deg, ${gradientColor}50, ${gradientColor}50)`,
+                    borderBottom: `2px solid ${color}`,
+                    padding: '1rem 1.25rem'
+                }}>
+                    <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex align-items-center gap-2">
+                            <div style={{
+                                width: '40px', height: '40px', borderRadius: '12px',
+                                background: `${color}15`, display: 'flex',
+                                alignItems: 'center', justifyContent: 'center', color
+                            }}>
+                                <FeatherIcon icon="map-pin" size={20} />
+                            </div>
+                            <div>
+                                <h5 className="mb-0 fw-semibold" style={{ color: '#254252' }}>Asset Locations</h5>
+                                <small style={{ color: '#6c757d' }}>{validCount} item{validCount !== 1 ? 's' : ''} added</small>
+                            </div>
+                        </div>
+                        <Badge style={{
+                            background: `${color}15`, color: '#fff',
+                            padding: '6px 12px', borderRadius: '20px', fontWeight: '500'
+                        }}>
+                            {validCount}
+                        </Badge>
+                    </div>
+                </Card.Header>
+
+                <Card.Body style={{ padding: '1.25rem', maxHeight: '400px', overflowY: 'auto' }}>
+                    {/* Column labels */}
+                    <div className="d-flex gap-2 mb-1 px-1">
+                        <small style={{ flex: 1, color: '#6c757d', fontWeight: '500' }}>
+                            Location <span style={{ color: '#dc2626' }}>*</span>
+                        </small>
+                        <small style={{ flex: 1, color: '#6c757d', fontWeight: '500' }}>
+                            Sub-location <span style={{ color: '#dc2626' }}>*</span>
+                        </small>
+                        <div style={{ width: '42px' }} />
+                    </div>
+
+                    {assetLocations.map((item, index) => (
+                        <div key={`location-${index}`} className="d-flex align-items-center gap-2 mb-2">
+                            <Form.Control
+                                type="text"
+                                placeholder="e.g., Mill"
+                                value={item.location}
+                                onChange={(e) => updateLocation(index, 'location', e.target.value)}
+                                style={{
+                                    flex: 1, borderRadius: '12px',
+                                    border: '1.5px solid #e9ecef',
+                                    padding: '12px 16px', fontSize: '0.95rem',
+                                    background: '#fff', transition: 'all 0.2s ease'
+                                }}
+                                onFocus={(e) => {
+                                    e.target.style.borderColor = color;
+                                    e.target.style.boxShadow = `0 0 0 3px ${color}20`;
+                                }}
+                                onBlur={(e) => {
+                                    e.target.style.borderColor = '#e9ecef';
+                                    e.target.style.boxShadow = 'none';
+                                }}
+                            />
+                            <span style={{ color: '#6c757d', fontWeight: '600', flexShrink: 0 }}>—</span>
+                            <Form.Control
+                                type="text"
+                                placeholder="e.g., Fabrication"
+                                value={item.subLocation}
+                                onChange={(e) => updateLocation(index, 'subLocation', e.target.value)}
+                                style={{
+                                    flex: 1, borderRadius: '12px',
+                                    border: '1.5px solid #e9ecef',
+                                    padding: '12px 16px', fontSize: '0.95rem',
+                                    background: '#fff', transition: 'all 0.2s ease'
+                                }}
+                                onFocus={(e) => {
+                                    e.target.style.borderColor = color;
+                                    e.target.style.boxShadow = `0 0 0 3px ${color}20`;
+                                }}
+                                onBlur={(e) => {
+                                    e.target.style.borderColor = '#e9ecef';
+                                    e.target.style.boxShadow = 'none';
+                                }}
+                            />
+                            {assetLocations.length > 1 && (
+                                <Button
+                                    variant="link"
+                                    onClick={() => removeLocation(index)}
+                                    style={{
+                                        color: '#dc2626', textDecoration: 'none',
+                                        padding: '8px 12px', borderRadius: '10px', flexShrink: 0
+                                    }}
+                                >
+                                    <FeatherIcon icon="x" size={18} />
+                                </Button>
+                            )}
+                        </div>
+                    ))}
+
+                    <Button
+                        variant="light"
+                        onClick={addLocation}
+                        className="w-100 mt-2"
+                        style={{
+                            borderRadius: '12px', padding: '10px',
+                            background: '#f8f9fa', border: '1.5px dashed #dee2e6',
+                            color: '#6c757d', fontWeight: '500', transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.target.style.background = `${color}10`;
+                            e.target.style.borderColor = color;
+                            e.target.style.color = color;
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.background = '#f8f9fa';
+                            e.target.style.borderColor = '#dee2e6';
+                            e.target.style.color = '#6c757d';
+                        }}
+                    >
+                        <FeatherIcon icon="plus" size={16} className="me-1" />
+                        Add Another
+                    </Button>
+                </Card.Body>
+            </Card>
+        );
+    };
+
     const renderDynamicSection = (title, icon, items, setItems, placeholder, color, gradientColor) => {
         const validCount = items.filter(i => i.trim()).length;
 
         return (
             <Card className="h-100 border-0" style={{
                 borderRadius: '20px',
-
                 background: 'rgba(255, 255, 255, 0.95)',
                 backdropFilter: 'blur(10px)',
                 transition: 'transform 0.2s ease, box-shadow 0.2s ease',
@@ -405,7 +547,7 @@ export default function SetupOption() {
                 </div>
             )}
 
-            <Container fluid style={{ maxWidth: '200    0px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+            <Container fluid style={{ maxWidth: '2000px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
                 {/* Header Section */}
                 <div className="mb-4">
                     <div className="d-flex justify-content-between align-items-start flex-wrap gap-3">
@@ -483,18 +625,8 @@ export default function SetupOption() {
                 {/* Main Form */}
                 <Form onSubmit={handleSubmit}>
                     <Row className="g-4">
-                        <Col lg={6}
-
-                        >
-                            {renderDynamicSection(
-                                'Asset Locations',
-                                'map-pin',
-                                assetLocations,
-                                setAssetLocations,
-                                'e.g., New York, London, Tokyo',
-                                '#3b82f6',
-                                '#60a5fa'
-                            )}
+                        <Col lg={6}>
+                            {renderLocationSection()}
                         </Col>
                         <Col lg={6}>
                             {renderDynamicSection(
@@ -537,7 +669,7 @@ export default function SetupOption() {
                             type="button"
                             variant="light"
                             onClick={() => {
-                                setAssetLocations(['']);
+                                setAssetLocations([{ location: '', subLocation: '' }]);
                                 setAssetTypes(['']);
                                 setAssetCategories(['']);
                                 setComponentTypes(['']);

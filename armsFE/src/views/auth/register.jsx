@@ -24,6 +24,7 @@ export default function SignUp1() {
   const [email, setEmail] = useState('');
   const [position, setPosition] = useState('');
   const [role, setRole] = useState('');
+  const [department, setDepartment] = useState('');
   const [password, setPassword] = useState('');
   const [confirmpassword, setConfirmPassword] = useState('');
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
@@ -91,6 +92,11 @@ export default function SignUp1() {
     }
     if (!role) {
       showAlertMessage('warning', 'Missing Information', 'Please select a role');
+      setIsLoading(false);
+      return false;
+    }
+    if (!department) {
+      showAlertMessage('warning', 'Missing Information', 'Please select a department');
       setIsLoading(false);
       return false;
     }
@@ -221,6 +227,18 @@ export default function SignUp1() {
           emp_email: email,
           pass_word: password,
           emp_role: role,
+          emp_department: department,
+          emp_position: position,
+          current_user: currentUser
+        });
+        console.log('Registration data:', {
+          emp_firstname: firstname,
+          emp_lastname: lastname,
+          user_name: username,
+          emp_email: email,
+          pass_word: password,
+          emp_role: role,
+          emp_department: department,
           emp_position: position,
           current_user: currentUser
         });
@@ -237,6 +255,7 @@ export default function SignUp1() {
         setEmail('');
         setPosition('');
         setRole('');
+        setDepartment('');
         setPassword('');
         setConfirmPassword('');
 
@@ -293,7 +312,6 @@ export default function SignUp1() {
       }}
     >
 
-      {/* ===== ANIMATED BACKGROUND ELEMENTS ===== */}
       {/* ===== ANIMATED BACKGROUND ELEMENTS ===== */}
       <div style={{
         position: 'absolute', width: '600px', height: '600px', borderRadius: '50%',
@@ -511,6 +529,7 @@ export default function SignUp1() {
                         <option value="l1">Level 1</option>
                         <option value="l2">Level 2</option>
                         <option value="l3">Level 3</option>
+
                       </Form.Select>
                     </Form.Group>
                   </Col>
@@ -537,6 +556,36 @@ export default function SignUp1() {
                         <option value="">Select role</option>
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
+                        <option value="mis_admin">MIS - Admin</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="normal fw-semibold text-secondary mb-2">
+                        <FeatherIcon icon="shield" size={12} className="me-1" color={'#ffa600'} /> Department
+                      </Form.Label>
+                      <Form.Select
+                        value={department}
+                        onChange={(e) => setDepartment(e.target.value)}
+                        className="shadow-none"
+                        style={{
+                          border: '2px solid #E2E8F0',
+                          borderRadius: '14px',
+                          padding: '12px 16px',
+                          fontSize: '0.9rem',
+                          backgroundColor: 'white',
+                          cursor: 'pointer'
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = '#E37239'}
+                        onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                      >
+                        <option value="">Select Department</option>
+                        <option value="mme_mwso">MME & MWSO</option>
+                        <option value="mms">MMS</option>
+                        <option value="smed">SMED</option>
+                        <option value="assay">Assay</option>
+
                       </Form.Select>
                     </Form.Group>
                   </Col>
@@ -650,6 +699,7 @@ export default function SignUp1() {
                       setEmail('');
                       setPosition('');
                       setRole('');
+                      setDepartment('');
                       setPassword('');
                       setConfirmPassword('');
                     }}

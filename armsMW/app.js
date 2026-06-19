@@ -28,7 +28,25 @@ const session = require('express-session');
 var MemoryStore = require('memorystore')(session);
 
 var app = express();
+
+// Replace what you have with this:
+app.use('/api/documentation', (req, res, next) => {
+	const origin = req.headers.origin;
+	if (origin) {
+		res.setHeader('Access-Control-Allow-Origin', origin);
+	}
+	res.setHeader('Access-Control-Allow-Credentials', 'true');
+	res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+	next();
+});
 app.use('/api/documentation', express.static(path.join(__dirname, 'documentation')));
+
+// These lines already exist — keep them unchanged
+app.use('/api/documentation', express.static(path.join(__dirname, 'documentation')));
+app.use('/api/profile', express.static(path.join(__dirname, 'profile')));
+
+app.use('/api/documentation', express.static(path.join(__dirname, 'documentation')));
+app.use('/api/profile', express.static(path.join(__dirname, 'profile')));
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');

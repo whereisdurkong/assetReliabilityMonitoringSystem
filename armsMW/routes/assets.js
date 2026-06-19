@@ -52,6 +52,9 @@ const Assets = db.define('assets_master', {
     asset_notes: {
         type: DataTypes.STRING
     },
+    assigned_location: {
+        type: DataTypes.STRING
+    },
     has_components: {
         type: DataTypes.STRING
     },
@@ -155,8 +158,8 @@ const AssetsMonitoring = db.define('monitoring_master', {
     tableName: 'monitoring_master'
 });
 
-
 router.post('/add-assets', async (req, res) => {
+    console.log('@@@@: TRIGGERED /ADD-ASSETS')
     const currentTimestamp = new Date();
 
     const {
@@ -166,23 +169,23 @@ router.post('/add-assets', async (req, res) => {
         asset_category,
         date_commisioning,
         asset_notes,
+        assigned_location,
         trivector,
         created_by,
         components,
-        has_components // Add this field
+        has_components
     } = req.body;
 
     try {
-        // Get the count of records in assets_master table
-        const assetmasterlength = await knex('assets_master').count('* as count').first();
-        const asset_component_id_length = await knex('assets_component_master').count('* as count').first();
-        // Increment by 1 to get the new asset_id
-        const asset_id = (assetmasterlength.count || 0) + 1;
-        const asset_component_id = (asset_component_id_length.count || 0) + 1;
-
-        // Start a transaction to ensure all operations succeed or fail together
         await knex.transaction(async (trx) => {
-            // Insert into assets_master with has_components field
+
+            // ✅ Count queries now inside the transaction with lock
+            const assetmasterlength = await trx('assets_master').count('* as count').first().forUpdate();
+            const asset_id = (assetmasterlength.count || 0) + 1;
+
+            const componentLength = await trx('assets_component_master').count('* as count').first().forUpdate();
+            const asset_component_id_start = (componentLength.count || 0) + 1;
+
             await trx('assets_master').insert({
                 asset_id,
                 asset_name,
@@ -190,15 +193,15 @@ router.post('/add-assets', async (req, res) => {
                 asset_location,
                 asset_category,
                 date_commisioning,
+                assigned_location,
                 asset_notes,
                 trivector,
                 created_by,
                 is_active: '1',
-                has_components: has_components || (components && components.length > 0 ? '1' : '0'), // Store 1 if components exist, else 0
+                has_components: has_components || (components && components.length > 0 ? '1' : '0'),
                 created_at: currentTimestamp
-            })
+            });
 
-            // Insert into assets_logs
             await trx('assets_logs').insert({
                 asset_id: asset_id,
                 changes_made: `${created_by} has added an asset.`,
@@ -206,11 +209,9 @@ router.post('/add-assets', async (req, res) => {
                 created_by: created_by
             });
 
-            // Insert components if they exist
             if (components && components.length > 0) {
-                // Prepare all component records for bulk insert
-                const componentRecords = components.map(component => ({
-                    asset_component_id: asset_component_id,
+                const componentRecords = components.map((component, index) => ({
+                    asset_component_id: String(asset_component_id_start + index),
                     asset_id: asset_id,
                     asset_name: asset_name,
                     asset_component_type: component.componentType,
@@ -219,9 +220,7 @@ router.post('/add-assets', async (req, res) => {
                     created_at: currentTimestamp
                 }));
 
-                // Bulk insert all components
                 await trx('assets_component_master').insert(componentRecords);
-
                 console.log(`Added ${components.length} components for asset ID: ${asset_id}`);
             }
 
@@ -231,7 +230,7 @@ router.post('/add-assets', async (req, res) => {
                 components_added: components ? components.length : 0,
                 has_components: has_components || (components && components.length > 0 ? '1' : '0')
             });
-            console.log('Asset added successfully:', asset_id);
+
         });
 
     } catch (err) {
@@ -243,52 +242,56 @@ router.post('/add-assets', async (req, res) => {
     }
 });
 
+//Get All Assets
 router.get('/get-all-assets', async (req, res) => {
+    console.log('@@@@: TRIGGERED /GET-ALL-ASSETS')
     try {
         const fetch = await knex('assets_master').select('*');
         res.json(fetch);
-        console.log('triggered /get-all-assets')
+
     } catch (err) {
         console.log('INTERNAL ERROR, UNABLE TO FETCH ALL ASSETS', err)
     }
 })
 
+//Get All Asset Components
 router.get('/get-all-components', async (req, res) => {
+    console.log('@@@@: TRIGGERED /GET-ALL-COMPONENTS')
     try {
         const fetch = await knex('assets_component_master').select('*');
         res.json(fetch);
-        console.log('triggered /get-all-components')
+
     } catch (err) {
         console.log('INTERNAL ERROR, UNABLE TO FETCH ALL ASSETS', err)
     }
 })
 
+//Get Asset Component By ID
 router.get('/get-asset-component-by-id', async (req, res) => {
     try {
+        console.log('@@@@: TRIGGERED /GET-ASSET-COMPONENT-BY-ID')
         // Get the component by ID
         const components = await AssetsComponents.findAll({
             where: {
                 asset_component_id: req.query.id
             }
         });
-
-        console.log('/get-asset-component-by-id was triggered.')
         res.json(components[0])
     } catch (err) {
         console.log('INTERNAL ERROR: ', err)
     }
 })
 
+//Get Asset By ID
 router.get('/get-asset-by-id', async (req, res, next) => {
     try {
+        console.log('@@@@: TRIGGERED /GET-ASSET-BY-ID')
         // Get the asset by ID
         const assets = await Assets.findAll({
             where: {
                 asset_id: req.query.id
             }
         });
-
-        console.log('11111111111111111');
         console.log(assets);
 
         // Get the first asset from the array
@@ -327,7 +330,7 @@ router.get('/get-asset-by-id', async (req, res, next) => {
             components_count: components_count
         };
 
-        console.log('triggered /get-asset-by-id');
+
         res.json(assetWithComponents);
 
     } catch (err) {
@@ -339,109 +342,141 @@ router.get('/get-asset-by-id', async (req, res, next) => {
     }
 });
 
+//Update Asset
 router.post('/update-assets', async (req, res) => {
+    console.log('@@@@: TRIGGERED /UPDATE-ASSETS')
     const currentTimestamp = new Date()
-    const {
-        asset_id,
-        asset_name,
-        asset_type,
-        asset_location,
-        asset_category,
-        date_commisioning,
-        trivector,
-        asset_notes,
-        is_active,
-        updated_by,
-        changes_made
-    } = req.body
+    try {
+        const {
+            asset_id,
+            asset_name,
+            asset_type,
+            asset_location,
+            asset_category,
+            date_commisioning,
+            assigned_location,
+            trivector,
+            asset_notes,
+            is_active,
+            updated_by,
+            changes_made
+        } = req.body
 
-    await knex('assets_master').where('asset_id', asset_id).update({
-        asset_name,
-        asset_type,
-        asset_location,
-        asset_category,
-        date_commisioning,
-        trivector,
-        asset_notes,
-        is_active,
-        updated_by,
-        updated_at: currentTimestamp
-    })
+        await knex('assets_master').where('asset_id', asset_id).update({
+            asset_name,
+            asset_type,
+            asset_location,
+            asset_category,
+            date_commisioning,
+            assigned_location,
+            trivector,
+            asset_notes,
+            is_active,
+            updated_by,
+            updated_at: currentTimestamp
+        })
 
-    await knex('assets_logs').insert({
-        asset_id,
-        changes_made,
-        created_by: updated_by,
-        created_at: currentTimestamp
+        await knex('assets_logs').insert({
+            asset_id,
+            changes_made,
+            created_by: updated_by,
+            created_at: currentTimestamp
 
-    })
-    res.status(200).json({ message: 'Asset updated successfully' });
+        })
+        res.status(200).json({ message: 'Asset updated successfully' });
+    } catch (err) {
+        console.log('INTERNAL ERROR UPDATING ASSETS: ', err)
+    }
+
 
 })
 
+//Update Component
 router.post('/update-component', async (req, res) => {
     const currentTimestamp = new Date();
-    const {
-        component_id,
-        component_name,
-        component_type,
-        updated_by,
-        asset_id
-    } = req.body;
+    console.log('@@@ TRIGGERED /UPDATE-COMPONENT')
+    try {
+        const {
+            component_id,
+            component_name,
+            component_type,
+            updated_by,
+            asset_id
+        } = req.body;
 
 
-    await knex('assets_component_master').where('asset_component_id', component_id).update({
-        asset_component_name: component_name,
-        asset_component_type: component_type,
-        updated_by,
-        updated_at: currentTimestamp
-    })
+        await knex('assets_component_master').where('asset_component_id', component_id).update({
+            asset_component_name: component_name,
+            asset_component_type: component_type,
+            updated_by,
+            updated_at: currentTimestamp
+        })
 
-    await knex('assets_logs').insert({
-        asset_id,
-        changes_made: `${updated_by} has updated a component. Component ID: ${component_id}`,
-        created_by: updated_by,
-        created_at: currentTimestamp
+        await knex('assets_logs').insert({
+            asset_id,
+            changes_made: `${updated_by} has updated a component. Component ID: ${component_id}`,
+            created_by: updated_by,
+            created_at: currentTimestamp
 
-    })
-    res.status(200).json({ message: 'Component updated successfully' });
+        })
+        res.status(200).json({ message: 'Component updated successfully' });
+    } catch (err) {
+        console.log('INTERNAL ERROR UNABLE TO UPDATE COMPONENT: ', err)
+    }
+
 
 });
+
 router.post('/add-component', async (req, res) => {
     const currentTimestamp = new Date();
-    const {
-        component_name,
-        component_type,
-        created_by,
-        asset_id
-    } = req.body;
+    console.log('@@@ TRIGGERED /ADD-COMPONENT')
+    try {
+        const {
+            component_name,
+            component_type,
+            created_by,
+            asset_id
+        } = req.body;
 
-    const componentLength = await knex('assets_component_master').count('* as count').first();
-    const asset_component_id = (componentLength.count || 0) + 1;
+        await knex.transaction(async (trx) => {
 
+            // ✅ Locked inside transaction (was outside, causing race condition)
+            const componentLength = await trx('assets_component_master').count('* as count').first().forUpdate();
+            const asset_component_id = String((componentLength.count || 0) + 1);
 
-    await knex('assets_component_master').insert({
-        asset_component_id: asset_component_id,
-        asset_component_name: component_name,
-        asset_component_type: component_type,
-        created_by: created_by,
-        asset_id: asset_id,
-        created_at: currentTimestamp
-    })
+            // ✅ Single insert (was using undefined `components` array)
+            await trx('assets_component_master').insert({
+                asset_component_id: asset_component_id,
+                asset_component_name: component_name,
+                asset_component_type: component_type,
+                asset_id: asset_id,
+                created_by: created_by,
+                created_at: currentTimestamp
+            });
 
-    await knex('assets_logs').insert({
-        asset_id,
-        changes_made: `${created_by} has added a new component. `,
-        created_by: created_by,
-        created_at: currentTimestamp
+            await trx('assets_logs').insert({
+                asset_id,
+                changes_made: `${created_by} has added a new component.`,
+                created_by: created_by,
+                created_at: currentTimestamp
+            });
 
-    })
-    res.status(200).json({ message: 'Component added successfully' });
+        });
 
+        res.status(200).json({ message: 'Component added successfully' });
+
+    } catch (err) {
+        console.log('INTERNAL ERROR UNABLE TO ADD COMPONENT: ', err);
+        res.status(500).json({ error: 'Unable to add component', details: err.message }); // ✅ was missing
+    }
 });
 
 
+
+
+//Add Asset Monitoring Log
 router.post('/add-monitoring-log', async (req, res) => {
+    console.log('@@@ TRIGGERED /ADD-MONITORING-LOG')
     try {
         const {
             asset_id,
@@ -474,9 +509,10 @@ router.post('/add-monitoring-log', async (req, res) => {
     }
 });
 
+//Get All Asset Monitoring Logs
 router.get('/all-monitoring', async (req, res) => {
     try {
-
+        console.log('@@@ TRIGGERED /ALL-MONITORING')
         const fetch = await knex('monitoring_master').select('*');
         res.json(fetch);
 

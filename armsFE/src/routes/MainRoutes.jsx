@@ -21,7 +21,7 @@ const Register = lazy(() => import('../views/auth/register'));
 const AddAsset = lazy(() => import('../views/assets/add-assets'));
 const AllAssets = lazy(() => import('../views/assets/all-assets'));
 const ViewAsset = lazy(() => import('../views/assets/view-asset'));
-const AssetDashboard = lazy(() => import('../views/assets/assetdashboard'))
+const AssetDashboard = lazy(() => import('../views/dashboard/assetdashboard'))
 
 const AssetMonitoring = lazy(() => import('../views/assets/assetMonitoring'));
 const AddMonitoringLog = lazy(() => import('../views/assets/add-assetMonitoring'))
@@ -35,7 +35,18 @@ const TrivectorSetup = lazy(() => import('../views/setup/setup_option_trivector'
 const AllUsers = lazy(() => import('../views/auth/allusers'))
 const ViewUser = lazy(() => import('../views/auth/view-user'))
 
-import ViewSubmittedAsset from '../views/oil-analysis/view-submitted-asset';
+const Logout = lazy(() => import('../views/auth/logout'))
+
+// import ViewSubmittedAsset from '../views/oil-analysis/view-submitted-asset';
+
+const ViewSubmittedAsset = lazy(() => import('../views/oil-analysis/view-submitted-asset'))
+
+const NewOilDashboard = lazy(() => import('../views/dashboard/newoil'))
+const Profile = lazy(() => import('../views/auth/profile'))
+
+const ViewSubmittedNoAsset = lazy(() => import('../views/oil-analysis/view-submitted-no-asset'))
+const SubmitAssetNewOil = lazy(() => import('../views/oil-analysis/submit-asset-new-oil'))
+
 
 const DataAnalytic = lazy(() => import('../views/dashboard/dashboard'))
 const Test = lazy(() => import('../views/oil-analysis/test'))
@@ -159,11 +170,31 @@ const MainRoutes = {
       path: '/add-trivector-setup',
       element: <TrivectorSetup />
     },
-
+    {
+      path: '/submit-new-oil-analysis',
+      element: <SubmitAssetNewOil />
+    },
+    {
+      path: '/view-submitted-asset-no-asset',
+      element: <ViewSubmittedNoAsset />
+    },
+    {
+      path: '/new-oil-dashboard',
+      element: <NewOilDashboard />
+    },
     {
       path: '/test',
       element: <Test />
     },
+
+    {
+      path: '/logout',
+      element: <Logout />
+    },
+    {
+      path: '/profile',
+      element: <Profile />
+    }
 
 
 

@@ -1,4 +1,8 @@
-// Menu configuration for default layout
+const empInfo = JSON.parse(localStorage.getItem('user')) || {};
+const empRole = empInfo.emp_role;
+const empPosition = empInfo.emp_position;
+const empDepartment = empInfo.emp_department;
+
 const menuItems = {
   items: [
     {
@@ -16,7 +20,7 @@ const menuItems = {
           children: [
             {
               id: 'data',
-              title: 'Data Analytic',
+              title: 'Dashboard Analytics',
               type: 'item',
               url: '/dashboard'
             },
@@ -25,28 +29,17 @@ const menuItems = {
               title: 'Asset YTD Dashboard',
               type: 'item',
               url: '/asset-dashboard'
+            },
+            {
+              id: 'new-oil',
+              title: 'New Oil Dashboard',
+              type: 'item',
+              url: '/new-oil-dashboard'
             }
           ]
         }
       ]
     },
-    // {
-    //   id: 'Authenticaiton',
-    //   title: 'Sample Pages',
-    //   type: 'group',
-    //   icon: 'icon-navigation',
-    //   children: [
-    //     {
-    //       id: 'register',
-    //       title: 'Register',
-    //       type: 'item',
-    //       icon: 'material-icons-two-tone',
-    //       iconname: 'home',
-    //       url: '/register'
-
-    //     }
-    //   ]
-    // },
     {
       id: 'tools',
       title: 'Tools',
@@ -60,7 +53,6 @@ const menuItems = {
           icon: 'material-icons-two-tone',
           iconname: 'precision_manufacturing',
           url: '/all-asset'
-
         },
         {
           id: 'all-analysis-report',
@@ -69,24 +61,15 @@ const menuItems = {
           icon: 'material-icons-two-tone',
           iconname: 'snippet_folder',
           url: '/all-submit-asset'
-        },
+        }
       ]
     },
-
     {
       id: 'admin-tools',
       title: 'Admin Tools',
       type: 'group',
       icon: 'icon-navigation',
       children: [
-        // {
-        //   id: 'add-setup',
-        //   title: 'Add Setup',
-        //   type: 'item',
-        //   icon: 'material-icons-two-tone',
-        //   iconname: 'home',
-        //   url: '/add-setup'
-        // },
         {
           id: 'all-setup',
           title: 'Asset Option Setup',
@@ -94,89 +77,56 @@ const menuItems = {
           icon: 'material-icons-two-tone',
           iconname: 'tune',
           url: '/all-option-setup'
-        },
-        // {
-        //   id: 'register',
-        //   title: 'Registration',
-        //   type: 'item',
-        //   icon: 'material-icons-two-tone',
-        //   iconname: 'supervisor_account',
-        //   url: '/register'
-
-        // },
-        {
-          id: 'all-users',
-          title: 'All Users',
-          type: 'item',
-          icon: 'material-icons-two-tone',
-          iconname: 'supervisor_account',
-          url: '/all-users'
-
         }
-        // {
-        //   id: 'add-trivector-setup',
-        //   title: 'Add Trivector Setup',
-        //   type: 'item',
-        //   icon: 'material-icons-two-tone',
-        //   iconname: 'home',
-        //   url: '/add-trivector-setup'
-
-        // }
+        // Only injected for mis_admin — see below
       ]
     },
+    // ─── Bottom-pinned section ───────────────────────────────────────────────
     {
-      id: 'ui-element',
-      title: 'ELEMENTS',
-      subtitle: 'UI Components',
+      id: 'bottom-section',
+      title: 'Account',
       type: 'group',
-      icon: 'icon-ui',
+      isBottom: true,          // custom flag — consumed by NavGroup / NavItem
       children: [
         {
-          id: 'typography',
-          title: 'Typography',
+          id: 'profile',
+          title: 'Profile',
           type: 'item',
           icon: 'material-icons-two-tone',
-          iconname: 'text_fields',
-          url: '/typography'
+          iconname: 'person',
+          url: '/profile'
         },
         {
-          id: 'color',
-          title: 'Color',
+          id: 'logout',
+          title: 'Log Out',
           type: 'item',
           icon: 'material-icons-two-tone',
-          iconname: 'color_lens',
-          url: '/color'
-        },
-        {
-          id: 'icons',
-          title: 'Icons',
-          type: 'collapse',
-          icon: 'material-icons-two-tone',
-          iconname: 'history_edu',
-          children: [
-            {
-              id: 'feather',
-              title: 'Feather',
-              type: 'item',
-              url: '/icons/Feather'
-            },
-            {
-              id: 'font-awesome-5',
-              title: 'Font Awesome',
-              type: 'item',
-              url: '/icons/font-awesome-5'
-            },
-            {
-              id: 'material',
-              title: 'Material',
-              type: 'item',
-              url: '/icons/material'
-            }
-          ]
+          iconname: 'exit_to_app',   // corrected icon name
+          url: '/logout'
         }
       ]
     }
   ]
 };
+
+// Only mis_admin can see the All Users menu item
+if (empRole === 'mis_admin') {
+  const adminToolsGroup = menuItems.items.find((item) => item.id === 'admin-tools');
+  if (adminToolsGroup) {
+    adminToolsGroup.children.push({
+      id: 'all-users',
+      title: 'All Users',
+      type: 'item',
+      icon: 'material-icons-two-tone',
+      iconname: 'supervisor_account',
+      url: '/all-users'
+    });
+  }
+}
+
+// If role is 'user', remove the entire admin-tools group
+if (empRole === 'user') {
+  menuItems.items = menuItems.items.filter((item) => item.id !== 'admin-tools');
+}
 
 export default menuItems;

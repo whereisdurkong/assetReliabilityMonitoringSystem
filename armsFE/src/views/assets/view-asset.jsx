@@ -18,16 +18,17 @@ import axios from 'axios';
 import config from 'config';
 import FeatherIcon from 'feather-icons-react';
 import { color } from 'framer-motion';
-import { useNavigate } from 'react-router-dom'; // Add this import
+import { useNavigate } from 'react-router-dom';
 
 export default function ViewAsset() {
-    const navigate = useNavigate(); // Add this line
+    const navigate = useNavigate();
     const asset_id = new URLSearchParams(window.location.search).get('id');
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
         assetName: '',
         assetType: '',
         location: '',
+        assignedLocation: '',
         category: '',
         commissioningDate: '',
         trivector: '',
@@ -47,11 +48,16 @@ export default function ViewAsset() {
 
     const [isLoading, setIsLoading] = useState(false);
     const [locationOptions, setLocationOptions] = useState([]);
+    const [assignedLocationOptions, setAssignedLocationOptions] = useState([]);
     const [assetTypeOptions, setAssetTypeOptions] = useState([]);
     const [categoryOptions, setCategoryOptions] = useState([]);
     const [componentTypeOptions, setComponentTypeOptions] = useState([]);
     const [masterData, setMasterData] = useState([]);
     const [isDataLoaded, setIsDataLoaded] = useState(false);
+    const [userDepartments, setUserDepartments] = useState([]); // Add state for user departments
+    const [createdByAvatar, setCreatedByAvatar] = useState(null);
+    const [createdByAvatarComp, setCreatedByAvatarComp] = useState(null);
+
 
     // Add state for bounce animation
     const [shouldBounce, setShouldBounce] = useState(false);
@@ -74,15 +80,15 @@ export default function ViewAsset() {
     useEffect(() => {
         const interval = setInterval(() => {
             setShouldBounce(true);
-            // Remove the bounce class after animation completes
             setTimeout(() => {
                 setShouldBounce(false);
             }, 500);
-        }, 2000); // Every 5 seconds
+        }, 2000);
 
         return () => clearInterval(interval);
     }, []);
 
+    // Fetch location options from master data
     useEffect(() => {
         const fetchLocationOptions = async () => {
             try {
@@ -90,6 +96,7 @@ export default function ViewAsset() {
                 const data = res.data || [];
                 setMasterData(data);
                 const allLocations = [];
+
                 data.forEach(item => {
                     if (item.option_asset_location) {
                         const values = item.option_asset_location.split(',');
@@ -101,6 +108,11 @@ export default function ViewAsset() {
                         });
                     }
                 });
+
+
+                // Fetch avatar of the user who created this asset
+
+
                 setLocationOptions(allLocations);
             } catch (error) {
                 console.error('Error fetching location options:', error);
@@ -108,6 +120,41 @@ export default function ViewAsset() {
         };
         fetchLocationOptions();
     }, []);
+
+    // Fetch assigned location options from users' departments
+    useEffect(() => {
+        const fetchAssignedLocationOptions = async () => {
+            try {
+                const res = await axios.get(`${config.baseApi}/authentication/get-all-users`);
+
+                if (Array.isArray(res.data)) {
+                    const departments = [...new Set(res.data.map(user => user.emp_department))];
+                    console.log('Unique emp_departments:', departments);
+                    setUserDepartments(departments);
+
+                    // Create assigned location options from departments with proper formatting
+                    const locationOptionsFromDepts = departments.map(dept => ({
+                        value: dept,
+                        label: formatDepartmentName(dept)
+                    }));
+                    setAssignedLocationOptions(locationOptionsFromDepts);
+                }
+            } catch (err) {
+                console.log('Unable to fetch users for assigned locations: ', err);
+                // Fallback options if API fails
+
+            }
+        };
+        fetchAssignedLocationOptions();
+    }, []);
+
+    // Helper function to format department names
+    const formatDepartmentName = (dept) => {
+        if (dept === 'smed') return 'SMED';
+        if (dept === 'mme_mwso') return 'MME & MWSO';
+        if (dept === 'mms') return 'MMS';
+        return dept.toUpperCase().replace(/_/g, ' & ');
+    };
 
     useEffect(() => {
         if (!formData.location || masterData.length === 0) {
@@ -177,10 +224,33 @@ export default function ViewAsset() {
         return changes;
     };
 
+    const [userdepartment, setUserDepartment] = useState('');
+    useEffect(() => {
+        const fetch = async () => {
+            try {
+                const empInfo = JSON.parse(localStorage.getItem("user"));
+
+                console.log('Fetched user info from localStorage:', empInfo);
+
+                if (empInfo.emp_department == 'smed') {
+                    setUserDepartment('SMED');
+                } else if (empInfo.emp_department == 'mme_mwso') {
+                    setUserDepartment('MME & MWSO');
+                } else if (empInfo.emp_department == 'mms') {
+                    setUserDepartment('MMS');
+                }
+            } catch (err) {
+                console.log('Unable to fetch user info: ', err);
+            }
+        }
+        fetch()
+    }, [])
+
     useEffect(() => {
         const fetch = async () => {
             try {
                 setIsLoading(true);
+
                 const res = await axios.get(`${config.baseApi}/assets/get-asset-by-id`, {
                     params: { id: asset_id }
                 });
@@ -189,6 +259,7 @@ export default function ViewAsset() {
                     assetName: data.asset_name,
                     assetType: data.asset_type,
                     location: data.asset_location,
+                    assignedLocation: data.assigned_location || '',
                     category: data.asset_category,
                     commissioningDate: data.date_commisioning,
                     trivector: data.trivector,
@@ -201,6 +272,47 @@ export default function ViewAsset() {
                 originalData.current = fetchedData;
                 setFormData(fetchedData);
                 setIsDataLoaded(true);
+
+                const dompo = data.components || [];
+
+                try {
+                    const userRes = await axios.get(`${config.baseApi}/authentication/get-by-username`, {
+                        params: { user_name: data.created_by }
+                    });
+                    const userData = userRes.data;
+                    console.log('Fetched creator user data:', userData);
+                    setCreatedByAvatar(userData.avatar || null);
+
+                    // Fetch avatar for every component's created_by
+                    const componentUserPromises = dompo
+                        .filter(component => component.created_by) // skip empty values
+                        .map(component =>
+                            axios.get(`${config.baseApi}/authentication/get-by-username`, {
+                                params: { user_name: component.created_by }
+                            })
+                        );
+
+                    const componentUserResults = await Promise.allSettled(componentUserPromises);
+
+                    const componentAvatars = componentUserResults.map((result, index) => {
+                        if (result.status === 'fulfilled') {
+                            return {
+                                created_by: dompo[index].created_by,
+                                avatar: result.value.data.avatar || null
+                            };
+                        }
+                        return {
+                            created_by: dompo[index].created_by,
+                            avatar: null
+                        };
+                    });
+
+                    console.log('Component creator avatars:', componentAvatars);
+                    setCreatedByAvatarComp(componentAvatars); // add this state
+
+                } catch (err) {
+                    console.log('Could not fetch creator avatar:', err);
+                }
             } catch (error) {
                 console.error('Error fetching asset:', error);
                 showAlertMessage('error', 'Error', 'Failed to load asset data');
@@ -212,7 +324,7 @@ export default function ViewAsset() {
         if (asset_id) {
             fetch();
         }
-    }, [asset_id]);
+    }, [asset_id, userdepartment]);
 
     const formatDisplayName = (value) => {
         if (!value) return '';
@@ -268,15 +380,19 @@ export default function ViewAsset() {
             const empInfo = JSON.parse(localStorage.getItem("user"));
 
             if (editingComponent) {
-                await axios.post(`${config.baseApi}/assets/update-component`, {
-                    asset_id: asset_id,
-                    component_id: editingComponent.asset_component_id,
-                    component_name: componentFormData.componentName,
-                    component_type: componentFormData.componentType,
-                    updated_by: empInfo.user_name
-                });
-                showAlertMessage('success', 'Success', 'Component updated successfully');
-                setTimeout(() => window.location.reload(), 200);
+                try {
+                    await axios.post(`${config.baseApi}/assets/update-component`, {
+                        asset_id: asset_id,
+                        component_id: editingComponent.asset_component_id,
+                        component_name: componentFormData.componentName,
+                        component_type: componentFormData.componentType,
+                        updated_by: empInfo.user_name
+                    });
+                    showAlertMessage('success', 'Success', 'Component updated successfully');
+                    setTimeout(() => window.location.reload(), 200);
+                } catch (err) {
+                    console.error('Error updating component:', err);
+                }
             } else {
                 await axios.post(`${config.baseApi}/assets/add-component`, {
                     asset_id: asset_id,
@@ -317,6 +433,10 @@ export default function ViewAsset() {
             showAlertMessage('error', 'Empty Fields', 'Asset Location is empty');
             return false;
         }
+        if (!formData.assignedLocation?.trim()) {
+            showAlertMessage('error', 'Empty Fields', 'Assigned Location is empty');
+            return false;
+        }
         if (!formData.category?.trim()) {
             showAlertMessage('error', 'Empty Fields', 'Asset Category is empty');
             return false;
@@ -336,8 +456,6 @@ export default function ViewAsset() {
         try {
             const res = await axios.get(`${config.baseApi}/assets/get-all-assets`);
             const data = res.data || [];
-            console.log(data)
-            console.log(asset_id)
             const duplicateAssetName = data.some(
                 asset => asset.asset_name?.toLowerCase() === formData.assetName.toLowerCase() &&
                     asset.asset_id !== asset_id
@@ -345,15 +463,13 @@ export default function ViewAsset() {
 
             if (duplicateAssetName) {
                 showAlertMessage('error', 'Duplicate Asset', `An asset with the name "${formData.assetName}" already exists. Please use a different asset name.`);
-                return true; // indicates duplicate found
+                return true;
             }
-
-
-            return false; // no duplicate found
+            return false;
         } catch (err) {
             console.error('Unable to fetch all assets: ', err);
             showAlertMessage('error', 'Validation Error', 'Unable to verify asset name. Please try again.');
-            return true; // treat as duplicate found to prevent submission
+            return true;
         }
     };
 
@@ -366,13 +482,11 @@ export default function ViewAsset() {
             return;
         }
 
-        // Check for duplicate asset name before submitting
         const isDuplicate = await checkForDuplicateAsset();
         if (isDuplicate) {
-
+            setIsLoading(false);
             return;
         }
-
 
         let changes_made = "";
         if (originalData.current) {
@@ -382,6 +496,7 @@ export default function ViewAsset() {
                 Object.keys(changedFields).forEach(key => {
                     let fieldName = key.replace(/([A-Z])/g, ' $1').toLowerCase().trim();
                     if (fieldName === 'is active') fieldName = 'status';
+                    if (fieldName === 'assigned location') fieldName = 'assigned location';
                     const changeDesc = `${fieldName} from '${changedFields[key].from}' to '${changedFields[key].to}'`;
                     changeStrings.push(changeDesc);
                 });
@@ -397,6 +512,7 @@ export default function ViewAsset() {
                 asset_name: formData.assetName,
                 asset_type: formData.assetType,
                 asset_location: formData.location,
+                assigned_location: formData.assignedLocation,
                 asset_category: formData.category,
                 date_commisioning: formData.commissioningDate,
                 trivector: formData.trivector,
@@ -418,7 +534,7 @@ export default function ViewAsset() {
     };
 
     const handleEditClick = () => {
-        console.log('Edit button clicked'); // Debug log
+        console.log('Edit button clicked');
         if (isDataLoaded && !isLoading) {
             setIsEditing(true);
         }
@@ -434,6 +550,13 @@ export default function ViewAsset() {
     const handleMonitoring = () => {
         navigate(`/asset-monitoring?id=${asset_id}`)
     }
+
+    // Helper function to check if user can edit
+    const canUserEdit = () => {
+        if (!formData.assignedLocation) return false;
+        const formattedAssignedLocation = formatDepartmentName(formData.assignedLocation);
+        return userdepartment === formattedAssignedLocation;
+    };
 
     return (
         <div style={{
@@ -604,23 +727,26 @@ export default function ViewAsset() {
                     </div>
                     <div>
                         {!isEditing ? (
-                            <Button
-                                onClick={handleEditClick}
-                                disabled={!isDataLoaded || isLoading}
-                                style={{
-                                    background: 'linear-gradient(135deg, #EAB56F, #F9982F)',
-                                    border: 'none', borderRadius: '12px', padding: '14px 28px',
-                                    fontSize: '0.95rem', fontWeight: '600', color: '#fff',
-                                    cursor: 'pointer', display: 'flex', alignItems: 'center',
-                                    gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
-                                    transition: 'all 0.2s ease'
-                                }}
-                                onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
-                                onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
-                            >
-                                <FiEdit2 size={14} />
-                                Edit Asset
-                            </Button>
+                            /* Only show edit button if user department matches assigned location */
+                            canUserEdit() ? (
+                                <Button
+                                    onClick={handleEditClick}
+                                    disabled={!isDataLoaded || isLoading}
+                                    style={{
+                                        background: 'linear-gradient(135deg, #EAB56F, #F9982F)',
+                                        border: 'none', borderRadius: '12px', padding: '14px 28px',
+                                        fontSize: '0.95rem', fontWeight: '600', color: '#fff',
+                                        cursor: 'pointer', display: 'flex', alignItems: 'center',
+                                        gap: '10px', boxShadow: '0 4px 15px rgba(233, 150, 40, 0.3)',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 25px rgba(233, 150, 40, 0.4)'; }}
+                                    onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(233, 150, 40, 0.3)'; }}
+                                >
+                                    <FiEdit2 size={14} />
+                                    Edit Asset
+                                </Button>
+                            ) : null
                         ) : (
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                 <Button
@@ -658,20 +784,16 @@ export default function ViewAsset() {
                                     Save Changes
                                 </Button>
                             </div>
-
-
                         )}
                     </div>
                 </div>
 
                 {/* Stats Row */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-                    {/* <StatCard icon={FiBox} label="Asset ID" value={asset_id} textColor="#ff9900" backgroundColor="#ff990023" borderColor="#ff7b00" /> */}
                     <StatCard icon={FiCalendar} label="Commissioned" value={formData.commissioningDate || '—'} textColor="#7980e6" backgroundColor="#1100ff23" borderColor="#5f55e7" />
                     <StatCard icon={FiCpu} label="Components" value={components.length} textColor="#4dda60" backgroundColor="#00ff0d23" borderColor="#30ca45" />
                     <StatCard icon={FiUser} label="Created By" value={formData.created_by || '—'} textColor="#ccd672" backgroundColor="#ffee0023" borderColor="#fff45f" />
 
-                    {/* Bounce Button with animation */}
                     <button
                         onClick={handleMonitoring}
                         style={{
@@ -746,11 +868,44 @@ export default function ViewAsset() {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px 32px' }}>
                                 <InfoRow label="Asset Name" value={formData.assetName} icon={'box'} />
                                 <InfoRow label="Location" value={formatDisplayName(formData.location)} icon={'map-pin'} />
+                                <InfoRow label="Assigned Location" value={formatDepartmentName(formData.assignedLocation)} icon={'map-pin'} />
                                 <InfoRow label="Asset Type" value={formatDisplayName(formData.assetType)} icon={'sliders'} />
                                 <InfoRow label="Category" value={formatDisplayName(formData.category)} icon={'grid'} />
                                 <InfoRow label="Trivector" value={trivectorOptions.find(t => t.value === formData.trivector)?.label} icon={'zap'} />
                                 <InfoRow label="Commissioning Date" value={formData.commissioningDate} icon={'calendar'} />
-                                <InfoRow label="Created By" value={formData.created_by} icon={'user'} />
+                                <div>
+                                    <div style={{ fontWeight: '500', fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex', alignItems: 'center' }}>
+                                        <FeatherIcon icon="user" size={14} color="#ff6600" />
+                                        Created By
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '25px' }}>
+                                        <div style={{
+                                            width: '24px', height: '24px', borderRadius: '50%',
+                                            overflow: 'hidden', border: '2px solid #EAB56F',
+                                            background: '#f3f4f6', flexShrink: 0,
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                        }}>
+                                            {createdByAvatar ? (
+                                                <img
+                                                    src={`${config.baseApi}/${createdByAvatar}`}
+                                                    alt={formData.created_by}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.parentNode.innerHTML = `<span style="font-size:9px;font-weight:700;color:#EAB56F">${formData.created_by?.charAt(0)?.toUpperCase() || '?'}</span>`;
+                                                    }}
+                                                />
+                                            ) : (
+                                                <span style={{ fontSize: '9px', fontWeight: '700', color: '#EAB56F' }}>
+                                                    {formData.created_by?.charAt(0)?.toUpperCase() || '?'}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span style={{ fontSize: '14px', fontWeight: '500', color: '#0f172a' }}>
+                                            {formData.created_by || '—'}
+                                        </span>
+                                    </div>
+                                </div>
                                 <InfoRow label="Created At" value={formData.created_at ? new Date(formData.created_at).toLocaleString() : '—'} icon={'clock'} />
                                 {formData.notes && (
                                     <div style={{ gridColumn: 'span 2' }}>
@@ -764,12 +919,14 @@ export default function ViewAsset() {
                                 <Row>
                                     <Col md={6} style={{ marginBottom: '16px' }}>
                                         <Form.Group>
-
                                             <Form.Label style={{
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiBox style={{ height: '20px', width: '20px' }} color='#ff6600' />Asset Name <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            }}>
+                                                <FiBox style={{ height: '20px', width: '20px' }} color='#ff6600' />
+                                                Asset Name <span style={{ color: '#ef4444' }}>*</span>
+                                            </Form.Label>
                                             <Form.Control
                                                 type="text"
                                                 name="assetName"
@@ -793,7 +950,10 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiMapPin style={{ height: '20px', width: '20px' }} color='#ff6600' />Location <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            }}>
+                                                <FiMapPin style={{ height: '20px', width: '20px' }} color='#ff6600' />
+                                                Location <span style={{ color: '#ef4444' }}>*</span>
+                                            </Form.Label>
                                             <Form.Select
                                                 name="location"
                                                 value={formData.location || ''}
@@ -823,7 +983,43 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiSliders style={{ height: '20px', width: '20px' }} color='#ff6600' />Asset Type <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            }}>
+                                                <FiMapPin style={{ height: '20px', width: '20px' }} color='#ff6600' />
+                                                Assigned Location <span style={{ color: '#ef4444' }}>*</span>
+                                            </Form.Label>
+                                            <Form.Select
+                                                name="assignedLocation"
+                                                value={formData.assignedLocation || ''}
+                                                onChange={handleInputChange}
+                                                style={{
+                                                    border: '2px solid #E2E8F0',
+                                                    borderRadius: '10px',
+                                                    padding: '12px 16px',
+                                                    fontSize: '0.95rem',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onFocus={(e) => e.target.style.borderColor = '#ff7b00'}
+                                                onBlur={(e) => e.target.style.borderColor = '#E2E8F0'}
+                                            >
+                                                <option value="">Select assigned location</option>
+                                                {assignedLocationOptions.map((option, index) => (
+                                                    <option key={index} value={option.value}>
+                                                        {option.label}
+                                                    </option>
+                                                ))}
+                                            </Form.Select>
+                                        </Form.Group>
+                                    </Col>
+                                    <Col md={6} style={{ marginBottom: '16px' }}>
+                                        <Form.Group>
+                                            <Form.Label style={{
+                                                fontWeight: '500',
+                                                fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
+                                                alignItems: 'center',
+                                            }}>
+                                                <FiSliders style={{ height: '20px', width: '20px' }} color='#ff6600' />
+                                                Asset Type <span style={{ color: '#ef4444' }}>*</span>
+                                            </Form.Label>
                                             <Form.Select
                                                 name="assetType"
                                                 value={formData.assetType || ''}
@@ -852,7 +1048,10 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiGrid style={{ height: '20px', width: '20px' }} color='#ff6600' />Category <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            }}>
+                                                <FiGrid style={{ height: '20px', width: '20px' }} color='#ff6600' />
+                                                Category <span style={{ color: '#ef4444' }}>*</span>
+                                            </Form.Label>
                                             <Form.Select
                                                 name="category"
                                                 value={formData.category || ''}
@@ -881,7 +1080,10 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiZap style={{ height: '20px', width: '20px' }} color='#ff6600' /> Trivector <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            }}>
+                                                <FiZap style={{ height: '20px', width: '20px' }} color='#ff6600' />
+                                                Trivector <span style={{ color: '#ef4444' }}>*</span>
+                                            </Form.Label>
                                             <Form.Select
                                                 name="trivector"
                                                 value={formData.trivector || ''}
@@ -909,7 +1111,10 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiCalendar style={{ height: '20px', width: '20px' }} color='#ff6600' /> Commissioning Date <span style={{ color: '#ef4444' }}>*</span></Form.Label>
+                                            }}>
+                                                <FiCalendar style={{ height: '20px', width: '20px' }} color='#ff6600' />
+                                                Commissioning Date <span style={{ color: '#ef4444' }}>*</span>
+                                            </Form.Label>
                                             <Form.Control
                                                 type="date"
                                                 name="commissioningDate"
@@ -933,7 +1138,10 @@ export default function ViewAsset() {
                                                 fontWeight: '500',
                                                 fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
                                                 alignItems: 'center',
-                                            }}> <FiClipboard style={{ height: '20px', width: '20px' }} color='#ff6600' /> Notes</Form.Label>
+                                            }}>
+                                                <FiClipboard style={{ height: '20px', width: '20px' }} color='#ff6600' />
+                                                Notes
+                                            </Form.Label>
                                             <Form.Control
                                                 as="textarea"
                                                 rows={2}
@@ -953,7 +1161,6 @@ export default function ViewAsset() {
                                             />
                                         </Form.Group>
                                     </Col>
-
                                 </Row>
                             </Form>
                         )}
@@ -972,7 +1179,7 @@ export default function ViewAsset() {
                             <FiCpu style={{ height: '20px', width: '20px' }} color='#ff6600' />
                             <h2 style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a', margin: 0 }}>Components ({components.length})</h2>
                         </div>
-                        {isEditing && (
+                        {isEditing && canUserEdit() && (
                             <Button
                                 onClick={handleAddComponent}
                                 style={{
@@ -1001,7 +1208,7 @@ export default function ViewAsset() {
                                             <th style={{ textAlign: 'left', padding: '12px 16px', fontWeight: '600', color: '#475569' }}>Type</th>
                                             <th style={{ textAlign: 'left', padding: '12px 16px', fontWeight: '600', color: '#475569' }}>Created By</th>
                                             <th style={{ textAlign: 'left', padding: '12px 16px', fontWeight: '600', color: '#475569' }}>Date</th>
-                                            {isEditing && <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: '600', color: '#475569' }}>Actions</th>}
+                                            {isEditing && canUserEdit() && <th style={{ textAlign: 'center', padding: '12px 16px', fontWeight: '600', color: '#475569' }}>Actions</th>}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1009,9 +1216,43 @@ export default function ViewAsset() {
                                             <tr key={component.component_id || idx} style={{ borderBottom: '1px solid #e2e8f0', background: idx % 2 === 0 ? 'white' : '#fafcff' }}>
                                                 <td style={{ padding: '10px 16px', fontWeight: '500', color: '#0f172a' }}>{component.componentName}</td>
                                                 <td style={{ padding: '10px 16px', color: '#475569' }}>{formatDisplayName(component.componentType)}</td>
-                                                <td style={{ padding: '10px 16px', color: '#475569' }}>{component.created_by}</td>
+                                                <td style={{ padding: '10px 16px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        {(() => {
+                                                            const avatarObj = Array.isArray(createdByAvatarComp)
+                                                                ? createdByAvatarComp.find(a => a.created_by === component.created_by)
+                                                                : null;
+                                                            const avatarUrl = avatarObj?.avatar;
+                                                            return (
+                                                                <div style={{
+                                                                    width: '24px', height: '24px', borderRadius: '50%',
+                                                                    overflow: 'hidden', border: '2px solid #EAB56F',
+                                                                    background: '#f3f4f6', flexShrink: 0,
+                                                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                                }}>
+                                                                    {avatarUrl ? (
+                                                                        <img
+                                                                            src={`${config.baseApi}/${avatarUrl}`}
+                                                                            alt={component.created_by}
+                                                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                            onError={(e) => {
+                                                                                e.target.style.display = 'none';
+                                                                                e.target.parentNode.innerHTML = `<span style="font-size:9px;font-weight:700;color:#EAB56F">${component.created_by?.charAt(0)?.toUpperCase() || '?'}</span>`;
+                                                                            }}
+                                                                        />
+                                                                    ) : (
+                                                                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#EAB56F' }}>
+                                                                            {component.created_by?.charAt(0)?.toUpperCase() || '?'}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                        <span style={{ color: '#475569', fontSize: '13px' }}>{component.created_by}</span>
+                                                    </div>
+                                                </td>
                                                 <td style={{ padding: '10px 16px', color: '#475569' }}>{component.created_at ? new Date(component.created_at).toLocaleDateString() : '—'}</td>
-                                                {isEditing && (
+                                                {isEditing && canUserEdit() && (
                                                     <td style={{ padding: '10px 16px', textAlign: 'center' }}>
                                                         <Button
                                                             variant="link"
@@ -1031,7 +1272,7 @@ export default function ViewAsset() {
                             <div style={{ textAlign: 'center', padding: '48px', background: '#fafcff' }}>
                                 <FiZap size={32} color="#94a3b8" style={{ marginBottom: '8px' }} />
                                 <p style={{ color: '#64748b', fontSize: '13px', marginBottom: '12px' }}>No components added yet</p>
-                                {isEditing && (
+                                {isEditing && canUserEdit() && (
                                     <Button variant="link" onClick={handleAddComponent} style={{ color: '#3b82f6', fontSize: '12px', textDecoration: 'none' }}>
                                         Add your first component →
                                     </Button>
@@ -1040,7 +1281,7 @@ export default function ViewAsset() {
                         )}
                     </div>
                 </div>
-            </Container >
+            </Container>
             <style>
                 {`
                     @keyframes float {
@@ -1090,7 +1331,8 @@ const InfoRow = ({ label, value, icon }) => (
             fontWeight: '500',
             fontSize: '0.85rem', color: '#475569', marginBottom: '4px', gap: '6px', display: 'flex',
             alignItems: 'center',
-        }}> <FeatherIcon icon={icon} size={14} color="#ff6600" />
+        }}>
+            <FeatherIcon icon={icon} size={14} color="#ff6600" />
             {label}
         </div>
         <div style={{ fontSize: '14px', fontWeight: '500', color: '#0f172a', marginLeft: '25px' }}>{value || '—'}</div>
